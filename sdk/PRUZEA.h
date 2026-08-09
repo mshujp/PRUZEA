@@ -57,9 +57,16 @@ namespace Math {
     float wrap(float value, float min, float max);
     float sin(float radians);
     float cos(float radians);
+    float tan(float radians);
+    float asin(float value);
+    float acos(float value);
+    float atan(float value);
+    float atan2(float y, float x);
     void rotate(float x, float y, float radians, float& outX, float& outY);
     void normalize(float& x, float& y); // Normalize the vector. If the vector is zero, it is left unchanged.
     float angle(float x, float y); /// Returns the absolute angle of vector (x, y), in radians. Equivalent to atan2f(y, x). Return range: -PI to PI.
+    float deltaAngle(float current, float target);
+    float lerpAngle(float current, float target, float t);
     constexpr float PI      = 3.14159265358979323846f;
     constexpr float HALF_PI = PI * 0.5f;
     constexpr float TWO_PI  = PI * 2.0f;
@@ -70,6 +77,10 @@ namespace Math {
     float randomFloat();          // [0.0f, 1.0f)
     float randomFloat(float max); // [0.0f, max)
     float randomFloat(float min, float max); // [min, max)
+    bool chance(float probability); // 0.0: 0%, 1.0: 100% (Returns true with the given probability (0.0f to 1.0f).)
+    float map(float value, float inMin, float inMax, float outMin, float outMax);
+    void reflect(float inX, float inY, float normalX, float normalY, float& outX, float& outY);
+    float smoothDamp(float current, float target, float& currentVelocity, float smoothTime, float maxSpeed, float deltaSec);
 }
 namespace Collision {
     // =========================================================================
@@ -88,6 +99,59 @@ namespace Collision {
     bool lineRect(float x1, float y1, float x2, float y2, float rx, float ry, float rw, float rh);
     bool lineCircle(float x1, float y1, float x2, float y2, float cx, float cy, float radius);
 }
+class Tween {
+public:
+    enum Ease : uint8_t {
+        LINEAR,
+        EASE_IN,
+        EASE_OUT,
+        EASE_IN_OUT,
+        EASE_OUT_BACK,
+        EASE_OUT_BOUNCE
+    };
+    // t is automatically clamped to 0.0f - 1.0f.
+    static float apply(float t, Ease ease);
+    static float lerp(float from, float to, float t);
+    static float value(float from, float to, float t,Ease ease);
+};
+class Animation {
+public:
+    Animation(float duration, int totalFrames, bool loop = false);
+    void start();
+    void stop();
+    void reset();
+    void update(float deltaSec);
+    bool isPlaying() const;
+    bool isFinished() const;
+    int frame() const;
+private:
+    float currentTime = 0.0f;
+    float duration = 1.0f;
+    int totalFrames = 1;
+    bool playing = false;
+    bool loop = false;
+};
+class Vector2 {
+public:
+    float x;
+    float y;
+    Vector2(float x = 0.0f, float y = 0.0f);
+    float length() const;
+    Vector2 normalized() const;
+    float dot(const Vector2& other) const;
+    float cross(const Vector2& other) const;
+    float distance(const Vector2& other) const;
+
+    Vector2 operator+(const Vector2& other) const;
+    Vector2 operator-(const Vector2& other) const;
+    Vector2& operator+=(const Vector2& other);
+    Vector2& operator-=(const Vector2& other);
+    Vector2 operator*(float scalar) const;
+    Vector2 operator/(float scalar) const;
+    Vector2& operator*=(float scalar);
+    Vector2& operator/=(float scalar);
+};
+Vector2 operator*(float scalar, const Vector2& vector);
 namespace Display {
     // Physical display resolutions.
     static constexpr uint16_t SSD1306_SCREEN_W = 128;
@@ -434,26 +498,6 @@ public:
 
 protected:
     virtual ~Graphics() {};
-};
-
-// --- =================================================================
-// # Tween
-// =====================================================================
-class Tween {
-public:
-    enum Ease : uint8_t {
-        LINEAR,
-        EASE_IN,
-        EASE_OUT,
-        EASE_IN_OUT,
-        EASE_OUT_BACK,
-        EASE_OUT_BOUNCE
-    };
-
-    // t is automatically clamped to 0.0f - 1.0f.
-    static float apply(float t, Ease ease);
-    static float lerp(float from, float to, float t);
-    static float value(float from, float to, float t,Ease ease);
 };
 
 // --- =================================================================

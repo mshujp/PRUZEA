@@ -118,6 +118,31 @@ float cos(float radians)
     return cosf(radians);
 }
 
+float tan(float radians)
+{
+    return tanf(radians);
+}
+
+float asin(float value)
+{
+    return asinf(value);
+}
+
+float acos(float value)
+{
+    return acosf(value);
+}
+
+float atan(float value)
+{
+    return atanf(value);
+}
+
+float atan2(float y, float x)
+{
+    return atan2f(y, x);
+}
+
 void rotate(float x, float y, float radians, float& outX, float& outY)
 {
     float s = sinf(radians);
@@ -129,6 +154,18 @@ void rotate(float x, float y, float radians, float& outX, float& outY)
 float angle(float x, float y)
 {
     return atan2f(y, x);
+}
+
+float deltaAngle(float current, float target)
+{
+    float delta = wrap(target - current, -Math::PI, Math::PI);
+    return delta;
+}
+
+float lerpAngle(float current, float target, float t)
+{
+    float delta = deltaAngle(current, target);
+    return current + delta * t;
 }
 
 float degToRad(float degrees)
@@ -165,6 +202,61 @@ float randomFloat(float max) {
 float randomFloat(float min, float max) {
     if (min >= max) return min;
     return min + randomFloat() * (max - min);
+}
+
+bool chance(float probability)
+{
+    if (probability <= 0.0f) return false;
+    if (probability >= 1.0f) return true;
+    return randomFloat() < probability;
+}
+
+float map(float value, float inMin, float inMax, float outMin, float outMax)
+{
+    float inRange = inMax - inMin;
+    if (inRange == 0.0f) return outMin;
+    float t = (value - inMin) / inRange;
+    return outMin + t * (outMax - outMin);
+}
+
+void reflect(float inX, float inY, float normalX, float normalY, float& outX, float& outY)
+{
+    // Assumes (normalX, normalY) is a unit vector.
+    float d = dot(inX, inY, normalX, normalY);
+    outX = inX - 2.0f * d * normalX;
+    outY = inY - 2.0f * d * normalY;
+}
+
+float smoothDamp(float current, float target, float& currentVelocity, float smoothTime, float maxSpeed, float deltaSec)
+{
+    // Based on Game Programming Gems 4, Chapter 1.10 (critically damped spring).
+    if (deltaSec <= 0.0f) return current;
+    smoothTime = (smoothTime < 0.0001f) ? 0.0001f : smoothTime;
+    float omega = 2.0f / smoothTime;
+
+    float x = omega * deltaSec;
+    float exp = 1.0f / (1.0f + x + 0.48f * x * x + 0.235f * x * x * x);
+
+    float change = current - target;
+    float originalTarget = target;
+
+    float maxChange = maxSpeed * smoothTime;
+    change = clamp(change, -maxChange, maxChange);
+    target = current - change;
+
+    float temp = (currentVelocity + omega * change) * deltaSec;
+    currentVelocity = (currentVelocity - omega * temp) * exp;
+
+    float output = target + (change + temp) * exp;
+
+    // Prevent overshooting past the original target.
+    if ((originalTarget - current > 0.0f) == (output > originalTarget))
+    {
+        output = originalTarget;
+        currentVelocity = (output - originalTarget) / deltaSec;
+    }
+
+    return output;
 }
 
 } // namespace Math
