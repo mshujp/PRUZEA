@@ -340,6 +340,29 @@ void GraphicsILI9341::drawImage(const Image& image, int16_t x, int16_t y)
     drawSprite(image.getBitmap(), x, y, image.getWidth(), image.getHeight());
 }
 
+void GraphicsILI9341::setClipRect(int16_t x, int16_t y, uint16_t w, uint16_t h)
+{
+    canvas.setClipRect(x, y, w, h);
+}
+
+void GraphicsILI9341::getClipRect(int16_t& x, int16_t& y, uint16_t& w, uint16_t& h)
+{
+    int32_t cx;
+    int32_t cy;
+    int32_t cw;
+    int32_t ch;
+    canvas.getClipRect(&cx, &cx, &cw, &ch);
+    x = static_cast<int16_t>(cx);
+    y = static_cast<int16_t>(cy);
+    w = static_cast<int16_t>(cw);
+    h = static_cast<int16_t>(ch);
+}
+
+void GraphicsILI9341::resetClipRect()
+{
+    canvas.clearClipRect();
+}
+
 void GraphicsILI9341::push()
 {
     if (!screenDirty) return;

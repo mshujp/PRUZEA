@@ -93,6 +93,9 @@ public:
     void drawSprite(const uint16_t* bitmap, int16_t x, int16_t y, uint16_t w, uint16_t h) override;
     void drawSprite(const uint16_t* bitmap, int16_t x, int16_t y, uint16_t w, uint16_t h, const SpriteOptions& options) override;
     void drawSprite(const SpriteSheet& sheet, uint16_t column, uint16_t row, int16_t x, int16_t y, const SpriteOptions& options) override;
+    void setClipRect(int16_t x, int16_t y, uint16_t w, uint16_t h) override;
+    void getClipRect(int16_t& x, int16_t& y, uint16_t& w, uint16_t& h) override;
+    void resetClipRect()  override;
 
     bool readScreenLine(uint16_t y, uint16_t* outPixels, uint16_t pixelCount) override;
     void push() override;

@@ -483,6 +483,10 @@ public:
     virtual void setCamera(const Camera& camera) = 0;
     virtual void resetCamera() = 0;
 
+    virtual void setClipRect(int16_t x, int16_t y, uint16_t w, uint16_t h) = 0;
+    virtual void setClipRect(int16_t x, int16_t y, uint16_t w, uint16_t h, HorizontalAlign ha, VerticalAlign va) = 0;
+    virtual void resetClipRect() = 0;
+
 protected:
     virtual ~Graphics() {};
 };

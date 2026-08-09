@@ -224,3 +224,22 @@ void GraphicsBase::resumeCamera()
 {
     cameraSuspended = false;
 }
+
+void GraphicsBase::setClipRect(int16_t x, int16_t y, uint16_t w, uint16_t h, HorizontalAlign ha, VerticalAlign va)
+{
+    setClipRect(alignedX(x, w, ha), alignedY(y, h, va), w, h);
+}
+
+void GraphicsBase::suspendClipRect()
+{
+    getClipRect(clipRectX, clipRectY, clipRectW, clipRectH);
+    resetClipRect();
+    clipRectSuspended = true;
+}
+
+void GraphicsBase::resumeClipRect()
+{
+    if (!clipRectSuspended) return;
+    setClipRect(clipRectX, clipRectY, clipRectW, clipRectH);
+    clipRectSuspended = false;
+}

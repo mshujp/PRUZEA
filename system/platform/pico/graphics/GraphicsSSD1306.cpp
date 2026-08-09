@@ -268,6 +268,29 @@ void GraphicsSSD1306::drawSprite(const SpriteSheet& sheet, uint16_t column, uint
     drawSprite(spriteSheetBuf, x, y, sheet.spriteWidth, sheet.spriteHeight, options);
 }
 
+void GraphicsSSD1306::setClipRect(int16_t x, int16_t y, uint16_t w, uint16_t h)
+{
+    canvas.setClipRect(x, y, w, h);
+}
+
+void GraphicsSSD1306::getClipRect(int16_t& x, int16_t& y, uint16_t& w, uint16_t& h)
+{
+    int32_t cx;
+    int32_t cy;
+    int32_t cw;
+    int32_t ch;
+    canvas.getClipRect(&cx, &cx, &cw, &ch);
+    x = static_cast<int16_t>(cx);
+    y = static_cast<int16_t>(cy);
+    w = static_cast<int16_t>(cw);
+    h = static_cast<int16_t>(ch);
+}
+
+void GraphicsSSD1306::resetClipRect()
+{
+    canvas.clearClipRect();
+}
+
 bool GraphicsSSD1306::readScreenLine(uint16_t y, uint16_t* outPixels, uint16_t pixelCount)
 {
     if (outPixels == nullptr) return false;
