@@ -4,12 +4,8 @@
 namespace PRUZEA
 {
 
-Animation::Animation(float duration, int totalFrames, bool loop)
-    : currentTime(0.0f)
-    , duration(duration)
-    , totalFrames(totalFrames)
-    , playing(false)
-    , loop(loop)
+Animation::Animation(float duration, int totalFrames, bool loop) : 
+    currentTime(0.0f), duration(duration), totalFrames(totalFrames), playing(false), loop(loop)
 {
 }
 
