@@ -24,26 +24,20 @@
 namespace PRUZEA
 {
 
-constexpr char PRUZEA_VERSION[] = "1.2.0";
+constexpr char PRUZEA_VERSION[] = "1.2.1";
 
+// =========================================================================
+// [PROVIDED BY SYSTEM]
+// All APIs declared in this header are provided by the PRUZEA system.
+// They are already implemented by the runtime and do not need to be
+// implemented or redefined in your application.
+// =========================================================================
 namespace Platform {
-    // =========================================================================
-    // [PROVIDED BY SYSTEM]
-    // These APIs are already implemented by the PRUZEA runtime.
-    // These declarations define existing APIs.
-    // Do NOT implement or redefine them. Use them directly from your game code.
-    // =========================================================================
     uint32_t getMsec(); // Returns the number of milliseconds since system startup.
     uint64_t getUsec(); // Returns the number of microseconds since system startup.
     bool elapsed(uint32_t now, uint32_t startMsec, uint32_t durationMsec);
 }
 namespace Math {
-    // =========================================================================
-    // [PROVIDED BY SYSTEM]
-    // These APIs are already implemented by the PRUZEA runtime.
-    // These declarations define existing APIs.
-    // Do NOT implement or redefine them. Use them directly from your game code.
-    // =========================================================================
     template<typename T>
     T clamp(T value, T min, T max); // All arguments must have the same type.
     float lerp(float a, float b, float t);
@@ -67,7 +61,7 @@ namespace Math {
     float angle(float x, float y); /// Returns the absolute angle of vector (x, y), in radians. Equivalent to atan2f(y, x). Return range: -PI to PI.
     float deltaAngle(float current, float target);
     float lerpAngle(float current, float target, float t);
-    constexpr float PI      = 3.14159265358979323846f;
+    constexpr float PI = 3.14159265358979323846f;
     constexpr float HALF_PI = PI * 0.5f;
     constexpr float TWO_PI  = PI * 2.0f;
     float degToRad(float degrees);
@@ -83,13 +77,6 @@ namespace Math {
     float smoothDamp(float current, float target, float& currentVelocity, float smoothTime, float maxSpeed, float deltaSec);
 }
 namespace Collision {
-    // =========================================================================
-    // [PROVIDED BY SYSTEM]
-    // These APIs are already implemented by the PRUZEA runtime.
-    // These declarations define existing APIs.
-    // Do NOT implement or redefine them.
-    // Use them directly from your game code.
-    // =========================================================================
     bool pointRect(float px, float py, float rx, float ry, float rw, float rh);
     bool rectRect(float ax, float ay, float aw, float ah, float bx, float by, float bw, float bh);
     bool circleCircle(float ax, float ay, float ar, float bx, float by, float br);
@@ -698,11 +685,6 @@ protected:
 
 // --- =================================================================
 // # SaveData: Storage helper
-// [PROVIDED BY SYSTEM]
-//   These APIs are already implemented by the PRUZEA runtime.
-//   These declarations define existing APIs. Do NOT implement or redefine them.
-//   Use them directly from your game code.
-//
 //   SaveData provides small key-value persistent storage.
 //   It handles file formatting and UserFile access internally.
 //   Use SaveData for ordinary save data instead of implementing a custom key-value file format.
