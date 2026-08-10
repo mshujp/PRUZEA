@@ -90,6 +90,14 @@ public:
     void drawCircle(int16_t x, int16_t y, uint16_t rx, uint16_t ry, Graphics::Color color) override;
     void fillCircle(int16_t x, int16_t y, uint16_t r, Graphics::Color color) override;
     void fillCircle(int16_t x, int16_t y, uint16_t rx, uint16_t ry, Graphics::Color color) override;
+    void drawArc(int16_t x, int16_t y, uint16_t r, float angle0, float angle1, Color color) override;
+    void drawArc(int16_t x, int16_t y, uint16_t r, uint8_t w, float angle0, float angle1, Color color) override;
+    void drawArc(int16_t x, int16_t y, uint16_t rx, uint16_t ry, float angle0, float angle1, Color color) override;
+    void drawArc(int16_t x, int16_t y, uint16_t rx, uint16_t ry, uint8_t w, float angle0, float angle1, Color color) override;
+    void fillArc(int16_t x, int16_t y, uint16_t r, float angle0, float angle1, Color color) override;
+    void fillArc(int16_t x, int16_t y, uint16_t r, uint8_t w, float angle0, float angle1, Color color) override;
+    void fillArc(int16_t x, int16_t y, uint16_t rx, uint16_t ry, float angle0, float angle1, Color color) override;
+    void fillArc(int16_t x, int16_t y, uint16_t rx, uint16_t ry, uint8_t w, float angle0, float angle1, Color color) override;
     void drawString(const char* str, int16_t x, int16_t y, Graphics::Color color, Font font) override;
     uint16_t getTextWidth(const char* text, Font font) override;
     void drawSprite(const uint16_t* bitmap, int16_t x, int16_t y, uint16_t w, uint16_t h) override;

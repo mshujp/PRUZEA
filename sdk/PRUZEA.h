@@ -355,6 +355,19 @@ public:
     virtual void fillCircle(int16_t x, int16_t y, uint16_t r, Color color) = 0;
     virtual void fillCircle(int16_t x, int16_t y, uint16_t rx, uint16_t ry, Color color) = 0;
 
+    // ## drawArc / fillArc
+    // - angle0 / angle1: Start and end angles in radians. 0 radians is to the right.
+    // - rx / ry: Horizontal and vertical radius.
+    // - w: Arc thickness.
+    virtual void drawArc(int16_t x, int16_t y, uint16_t r, float angle0, float angle1, Color color) = 0;
+    virtual void drawArc(int16_t x, int16_t y, uint16_t r, uint8_t w, float angle0, float angle1, Color color) = 0;
+    virtual void drawArc(int16_t x, int16_t y, uint16_t rx, uint16_t ry, float angle0, float angle1, Color color) = 0;
+    virtual void drawArc(int16_t x, int16_t y, uint16_t rx, uint16_t ry, uint8_t w, float angle0, float angle1, Color color) = 0;
+    virtual void fillArc(int16_t x, int16_t y, uint16_t r, float angle0, float angle1, Color color) = 0;
+    virtual void fillArc(int16_t x, int16_t y, uint16_t r, uint8_t w, float angle0, float angle1, Color color) = 0;
+    virtual void fillArc(int16_t x, int16_t y, uint16_t rx, uint16_t ry, float angle0, float angle1, Color color) = 0;
+    virtual void fillArc(int16_t x, int16_t y, uint16_t rx, uint16_t ry, uint8_t w, float angle0, float angle1, Color color) = 0;
+
     // [!IMPORTANT] AI WARNING:
     //   Use only the enum values defined below.
     //   Never invent or guess font names.

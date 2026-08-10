@@ -202,6 +202,88 @@ void GraphicsILI9341::fillCircle(int16_t x, int16_t y, uint16_t rx, uint16_t ry,
     screenDirty = true;
 }
 
+void GraphicsILI9341::drawArc(int16_t x, int16_t y, uint16_t r, float angle0, float angle1, Graphics::Color color)
+{
+    const int32_t r1 = toScreenW(r);
+    canvas.drawArc(toScreenX(x), toScreenY(y), 0, r1, Math::radToDeg(angle0), Math::radToDeg(angle1), color);
+    screenDirty = true;
+}
+
+void GraphicsILI9341::drawArc(int16_t x, int16_t y, uint16_t r, uint8_t width, float angle0, float angle1, Graphics::Color color)
+{
+    const int32_t r1 = toScreenW(r);
+    const int32_t w  = toScreenW(width);
+    int32_t r0 = r1 - w;
+    if (r0 < 0) r0 = 0;
+
+    canvas.drawArc(toScreenX(x), toScreenY(y), r0, r1, Math::radToDeg(angle0), Math::radToDeg(angle1), color);
+    screenDirty = true;
+}
+
+void GraphicsILI9341::drawArc(int16_t x, int16_t y, uint16_t rx, uint16_t ry, float angle0, float angle1, Graphics::Color color)
+{
+    const int32_t r1x = toScreenW(rx);
+    const int32_t r1y = toScreenH(ry);
+    canvas.drawEllipseArc(toScreenX(x), toScreenY(y), 0, r1x, 0, r1y, Math::radToDeg(angle0), Math::radToDeg(angle1), color);
+    screenDirty = true;
+}
+
+void GraphicsILI9341::drawArc(int16_t x, int16_t y, uint16_t rx, uint16_t ry, uint8_t width, float angle0, float angle1, Graphics::Color color)
+{
+    const int32_t r1x = toScreenW(rx);
+    const int32_t r1y = toScreenH(ry);
+    const int32_t wx  = toScreenW(width);
+    const int32_t wy  = toScreenH(width);
+    int32_t r0x = r1x - wx;
+    int32_t r0y = r1y - wy;
+    if (r0x < 0) r0x = 0;
+    if (r0y < 0) r0y = 0;
+
+    canvas.drawEllipseArc(toScreenX(x), toScreenY(y), r0x, r1x, r0y, r1y, Math::radToDeg(angle0), Math::radToDeg(angle1), color);
+    screenDirty = true;
+}
+
+void GraphicsILI9341::fillArc(int16_t x, int16_t y, uint16_t r, float angle0, float angle1, Graphics::Color color)
+{
+    const int32_t r1 = toScreenW(r);
+    canvas.fillArc(toScreenX(x), toScreenY(y), 0, r1, Math::radToDeg(angle0), Math::radToDeg(angle1), color);
+    screenDirty = true;
+}
+
+void GraphicsILI9341::fillArc(int16_t x, int16_t y, uint16_t r, uint8_t width, float angle0, float angle1, Graphics::Color color)
+{
+    const int32_t r1 = toScreenW(r);
+    const int32_t w  = toScreenW(width);
+    int32_t r0 = r1 - w;
+    if (r0 < 0) r0 = 0;
+
+    canvas.fillArc(toScreenX(x), toScreenY(y), r0, r1, Math::radToDeg(angle0), Math::radToDeg(angle1), color);
+    screenDirty = true;
+}
+
+void GraphicsILI9341::fillArc(int16_t x, int16_t y, uint16_t rx, uint16_t ry, float angle0, float angle1, Graphics::Color color)
+{
+    const int32_t r1x = toScreenW(rx);
+    const int32_t r1y = toScreenH(ry);
+    canvas.fillEllipseArc(toScreenX(x), toScreenY(y), 0, r1x, 0, r1y, Math::radToDeg(angle0), Math::radToDeg(angle1), color);
+    screenDirty = true;
+}
+
+void GraphicsILI9341::fillArc(int16_t x, int16_t y, uint16_t rx, uint16_t ry, uint8_t width, float angle0, float angle1, Graphics::Color color)
+{
+    const int32_t r1x = toScreenW(rx);
+    const int32_t r1y = toScreenH(ry);
+    const int32_t wx  = toScreenW(width);
+    const int32_t wy  = toScreenH(width);
+    int32_t r0x = r1x - wx;
+    int32_t r0y = r1y - wy;
+    if (r0x < 0) r0x = 0;
+    if (r0y < 0) r0y = 0;
+
+    canvas.fillEllipseArc(toScreenX(x), toScreenY(y), r0x, r1x, r0y, r1y, Math::radToDeg(angle0), Math::radToDeg(angle1), color);
+    screenDirty = true;
+}
+
 void GraphicsILI9341::setFont(const char* str, Font font)
 {
     const lgfx::IFont* targetFont = &fonts::DejaVu12;
