@@ -172,6 +172,18 @@ void GraphicsILI9341::fillRectAlpha(int16_t x, int16_t y, uint16_t w, uint16_t h
     screenDirty = true;
 }
 
+void GraphicsILI9341::fillRectGradient(int16_t x, int16_t y, uint16_t w, uint16_t h, Color color0,  Color color1, FillStyle style)
+{
+    lgfx::gradient_fill_styles::fill_style_t s;
+    switch (style)
+    {
+    case VERTICAL_LINEAR: s = lgfx::gradient_fill_styles::vertical_linear; break;
+    case RADIAL_CENTER:   s = lgfx::gradient_fill_styles::radial_center; break;
+    default:              s = lgfx::gradient_fill_styles::horizontal_linear; break;
+    }
+    canvas.fillGradientRect(toScreenX(x), toScreenY(y), toScreenW(w), toScreenH(h), color0, color1, s);
+}
+ 
 void GraphicsILI9341::fillRoundRect(int16_t x, int16_t y, uint16_t w, uint16_t h, int16_t radius, Graphics::Color color)
 {
     canvas.fillRoundRect(toScreenX(x), toScreenY(y), toScreenW(w), toScreenH(h), toScreenW(radius), color);

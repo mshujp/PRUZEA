@@ -119,6 +119,11 @@ void GraphicsBase::fillRectAlpha(int16_t x, int16_t y, uint16_t w, uint16_t h, u
     fillRectAlpha(alignedX(x, w, ha), alignedY(y, h, va), w, h, alpha, color);
 }
 
+void GraphicsBase::fillRectGradient(int16_t x, int16_t y, uint16_t w, uint16_t h, Color color0, Color color1, FillStyle style, HorizontalAlign ha, VerticalAlign va)
+{
+    fillRectGradient(alignedX(x, w, ha), alignedY(y, h, va), w, h, color0, color1, style);
+}
+
 void GraphicsBase::fillRoundRect(int16_t x, int16_t y, uint16_t w, uint16_t h, int16_t r, Color color, HorizontalAlign ha, VerticalAlign va)
 {
     fillRoundRect(alignedX(x, w, ha), alignedY(y, h, va), w, h, r, color);

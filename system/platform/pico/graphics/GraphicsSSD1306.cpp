@@ -104,6 +104,11 @@ void GraphicsSSD1306::fillRect(int16_t x, int16_t y, uint16_t w, uint16_t h, Gra
     screenDirty = true;
 }
 
+void GraphicsSSD1306::fillRectGradient(int16_t x, int16_t y, uint16_t w, uint16_t h, Color color0, Color color1, FillStyle style)
+{
+    fillRect(x, y, w, h, color0);
+}
+
 void GraphicsSSD1306::fillRoundRect(int16_t x, int16_t y, uint16_t w, uint16_t h, int16_t r, Graphics::Color color)
 {
     canvas.fillRoundRect(toScreenX(x), toScreenY(y), toScreenW(w), toScreenH(h), toScreenW(r), mono(color));

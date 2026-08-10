@@ -81,6 +81,7 @@ public:
     void fillTriangle(int16_t x0, int16_t y0, int16_t x1, int16_t y1, int16_t x2, int16_t y2, Graphics::Color color) override;
     void drawRect(int16_t x, int16_t y, uint16_t w, uint16_t h, Graphics::Color color) override;
     void fillRectAlpha(int16_t x, int16_t y, uint16_t w, uint16_t h, uint8_t alpha, Graphics::Color color) override {};
+    void fillRectGradient(int16_t x, int16_t y, uint16_t w, uint16_t h, Color color0, Color color1, FillStyle style) override;
     void drawRoundRect(int16_t x, int16_t y, uint16_t w, uint16_t h, uint16_t radius, Graphics::Color color) override;
     void fillRect(int16_t x, int16_t y, uint16_t w, uint16_t h, Graphics::Color color) override;
     void fillRoundRect(int16_t x, int16_t y, uint16_t w, uint16_t h, int16_t r, Graphics::Color color) override;

@@ -65,6 +65,7 @@ public:
     using Graphics::drawRoundRect;
     using Graphics::fillRect;
     using Graphics::fillRectAlpha;
+    using Graphics::fillRectGradient;
     using Graphics::fillRoundRect;
     using Graphics::setClipRect;
     using Graphics::resetClipRect;
@@ -82,6 +83,7 @@ public:
     void drawRoundRect(int16_t x, int16_t y, uint16_t w, uint16_t h, uint16_t radius, uint16_t thickness, Color color, HorizontalAlign ha, VerticalAlign va) override;
     void fillRect(int16_t x, int16_t y, uint16_t w, uint16_t h, Color color, HorizontalAlign ha, VerticalAlign va) override;
     void fillRectAlpha(int16_t x, int16_t y, uint16_t w, uint16_t h, uint8_t alpha, Color color, HorizontalAlign ha, VerticalAlign va) override;
+    void fillRectGradient(int16_t x, int16_t y, uint16_t w, uint16_t h, Color color0,  Color color1, FillStyle style, HorizontalAlign ha, VerticalAlign va) override;
     void fillRoundRect(int16_t x, int16_t y, uint16_t w, uint16_t h, int16_t r, Color color, HorizontalAlign ha, VerticalAlign va) override;
     void drawString(const char* str, int16_t x, int16_t y, Color color, Font font, HorizontalAlign ha, VerticalAlign va) override;
     void setCamera(const Camera& camera) override;
