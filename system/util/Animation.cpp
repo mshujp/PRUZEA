@@ -52,6 +52,17 @@ bool Animation::isPlaying() const
     return playing;
 }
 
+float Animation::progress() const
+{
+    if (duration <= 0.0f) return 0.0f;
+
+    float p = currentTime / duration;
+    if (p < 0.0f) p = 0.0f;
+    if (p > 1.0f) p = 1.0f;
+
+    return p;
+}
+
 bool Animation::isFinished() const
 {
     return !loop && currentTime >= duration;

@@ -99,6 +99,7 @@ public:
     void reset();
     void update(float deltaSec);
     bool isPlaying() const;
+    float progress() const;
     bool isFinished() const;
     int frame() const;
 private:
