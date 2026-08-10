@@ -76,16 +76,6 @@ namespace Math {
     void reflect(float inX, float inY, float normalX, float normalY, float& outX, float& outY);
     float smoothDamp(float current, float target, float& currentVelocity, float smoothTime, float maxSpeed, float deltaSec);
 }
-namespace Collision {
-    bool pointRect(float px, float py, float rx, float ry, float rw, float rh);
-    bool rectRect(float ax, float ay, float aw, float ah, float bx, float by, float bw, float bh);
-    bool circleCircle(float ax, float ay, float ar, float bx, float by, float br);
-    bool circleRect(float cx, float cy, float radius, float rx, float ry, float rw, float rh);
-    bool pointCircle(float px, float py, float cx, float cy, float radius);
-    bool lineLine(float x1, float y1, float x2, float y2, float x3, float y3, float x4, float y4);
-    bool lineRect(float x1, float y1, float x2, float y2, float rx, float ry, float rw, float rh);
-    bool lineCircle(float x1, float y1, float x2, float y2, float cx, float cy, float radius);
-}
 class Tween {
 public:
     enum Ease : uint8_t {
@@ -139,6 +129,19 @@ public:
     Vector2& operator/=(float scalar);
 };
 Vector2 operator*(float scalar, const Vector2& vector);
+namespace Collision {
+    bool pointRect(float px, float py, float rx, float ry, float rw, float rh);
+    bool rectRect(float ax, float ay, float aw, float ah, float bx, float by, float bw, float bh);
+    bool rectRect(float ax, float ay, float aw, float ah, float bx, float by, float bw, float bh, Vector2& pushOut);
+    bool circleCircle(float ax, float ay, float ar, float bx, float by, float br);
+    bool circleCircle(float ax, float ay, float ar, float bx, float by, float br, Vector2& pushOut);
+    bool circleRect(float cx, float cy, float radius, float rx, float ry, float rw, float rh);
+    bool circleRect(float cx, float cy, float radius, float rx, float ry, float rw, float rh, Vector2& pushOut);
+    bool pointCircle(float px, float py, float cx, float cy, float radius);
+    bool lineLine(float x1, float y1, float x2, float y2, float x3, float y3, float x4, float y4);
+    bool lineRect(float x1, float y1, float x2, float y2, float rx, float ry, float rw, float rh);
+    bool lineCircle(float x1, float y1, float x2, float y2, float cx, float cy, float radius);
+}
 namespace Display {
     // Physical display resolutions.
     static constexpr uint16_t SSD1306_SCREEN_W = 128;
