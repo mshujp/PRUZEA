@@ -206,3 +206,52 @@ bool Collision::lineCircle(float x1, float y1, float x2, float y2, float cx, flo
     float ddx = cx - closestX, ddy = cy - closestY;
     return (ddx * ddx + ddy * ddy) <= (radius * radius);
 }
+
+bool Collision::raycast(float x, float y, float dx, float dy, float rx, float ry, float rw, float rh, float& outHitX, float& outHitY)
+{
+    const float epsilon = 1e-8f;
+    float tMin = 0.0f;
+    float tMax = std::numeric_limits<float>::max();
+
+    // X slab
+    if (std::fabs(dx) < epsilon)
+    {
+        // Ray is parallel to the Y axis: it can only hit if the origin's X is already within the rect.
+        if (x < rx || x > rx + rw) return false;
+    }
+    else
+    {
+        float t1 = (rx - x) / dx;
+        float t2 = (rx + rw - x) / dx;
+        if (t1 > t2)
+        {
+            float tmp = t1; t1 = t2; t2 = tmp;
+        }
+        if (t1 > tMin) tMin = t1;
+        if (t2 < tMax) tMax = t2;
+        if (tMin > tMax) return false;
+    }
+
+    // Y slab
+    if (std::fabs(dy) < epsilon)
+    {
+        // Ray is parallel to the X axis: it can only hit if the origin's Y is already within the rect.
+        if (y < ry || y > ry + rh) return false;
+    }
+    else
+    {
+        float t1 = (ry - y) / dy;
+        float t2 = (ry + rh - y) / dy;
+        if (t1 > t2)
+        {
+            float tmp = t1; t1 = t2; t2 = tmp;
+        }
+        if (t1 > tMin) tMin = t1;
+        if (t2 < tMax) tMax = t2;
+        if (tMin > tMax) return false;
+    }
+
+    outHitX = x + tMin * dx;
+    outHitY = y + tMin * dy;
+    return true;
+}

@@ -141,6 +141,7 @@ namespace Collision {
     bool lineLine(float x1, float y1, float x2, float y2, float x3, float y3, float x4, float y4);
     bool lineRect(float x1, float y1, float x2, float y2, float rx, float ry, float rw, float rh);
     bool lineCircle(float x1, float y1, float x2, float y2, float cx, float cy, float radius);
+    bool raycast(float x, float y, float dx, float dy, float rx, float ry, float rw, float rh, float& outHitX, float& outHitY);
 }
 namespace Display {
     // Physical display resolutions.
