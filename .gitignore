@@ -16,6 +16,30 @@ lib/*
 !lib/.gitkeep
 
 #===============================================================================
+# Published Games
+#===============================================================================
+
+# Game directories are private by default. To publish a game, add both of the
+# following exception lines, replacing MyGame with its directory name:
+# !/games/MyGame/
+# !/games/MyGame/**
+/games/*
+!/games/AquaDrop/
+!/games/AquaDrop/**
+!/games/CyberBeat/
+!/games/CyberBeat/**
+!/games/GroundFront/
+!/games/GroundFront/**
+!/games/NeonReversi/
+!/games/NeonReversi/**
+!/games/RCQualifying/
+!/games/RCQualifying/**
+!/games/SignalLost/
+!/games/SignalLost/**
+!/games/VectorFlite/
+!/games/VectorFlite/**
+
+#===============================================================================
 # CMake
 #===============================================================================
 
