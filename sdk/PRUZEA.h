@@ -368,6 +368,14 @@ public:
     virtual void fillArc(int16_t x, int16_t y, uint16_t rx, uint16_t ry, float angle0, float angle1, Color color) = 0;
     virtual void fillArc(int16_t x, int16_t y, uint16_t rx, uint16_t ry, uint8_t w, float angle0, float angle1, Color color) = 0;
 
+    enum FillStyle : uint8_t {
+        HORIZONRAL_LINEAR,
+        VERTICAL_LINEAR,
+        RADIAL_CENTER
+    };
+    virtual void fillRectGradient(int16_t x, int16_t y, uint16_t w, uint16_t h, Color color0, Color color1, FillStyle style) = 0;
+    virtual void fillRectGradient(int16_t x, int16_t y, uint16_t w, uint16_t h, Color color0, Color color1, FillStyle style, HorizontalAlign ha, VerticalAlign va) = 0;
+  
     // [!IMPORTANT] AI WARNING:
     //   Use only the enum values defined below.
     //   Never invent or guess font names.
@@ -492,9 +500,12 @@ public:
 
     struct Camera
     {
+        // Camera position in world coordinates.
+        // World coordinates are translated by (-x, -y).
         int16_t x = 0;
         int16_t y = 0;
         float zoom = 1.0f;
+        // Zoom center in screen coordinates.
         int16_t zoomCenterX = 0;
         int16_t zoomCenterY = 0;
     };
