@@ -182,6 +182,7 @@ void GraphicsILI9341::fillRectGradient(int16_t x, int16_t y, uint16_t w, uint16_
     default:              s = lgfx::gradient_fill_styles::horizontal_linear; break;
     }
     canvas.fillGradientRect(toScreenX(x), toScreenY(y), toScreenW(w), toScreenH(h), color0, color1, s);
+    screenDirty = true;
 }
  
 void GraphicsILI9341::fillRoundRect(int16_t x, int16_t y, uint16_t w, uint16_t h, int16_t radius, Graphics::Color color)
