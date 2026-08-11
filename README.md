@@ -18,7 +18,8 @@ A lightweight game framework designed for AI-assisted game development.
 -   Unified Graphics / Input / Audio / Storage APIs
 -   Fixed 30 FPS game loop
 -   Built-in SaveData helper
--   2D camera, viewport, and scrolling support
+-   2D camera, zoom, clipping, viewport, and scrolling support
+-   2D game utilities for vectors, animation, tweening, math, and collision detection
 -   SpriteSheet rendering support
 -   PWM / I2S audio support
 -   ILI9341 (SPI / Parallel) and SSD1306 display support
@@ -84,6 +85,7 @@ This allows game logic to remain clean, portable, and easy to generate.
 | [13 Analog Stick](samples/AnalogStick/) | AnalogStick Input |
 | [14 Image Gallery](samples/ImageGallery/) | JPEG and PNG image rendering |
 | [15 Midi Music Box](samples/MidiMusicBox/) | Embedded SMF Format 0 / 1 MIDI playback |
+| [16 Maze Escape](samples/MazeEscape/) | Advanced gameplay and visual effects |
 | [Game Template](samples/GameTemplate/) | Empty project template |
 
 Each sample is placed under the [`samples`](samples) directory.
