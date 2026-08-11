@@ -366,7 +366,7 @@ void GraphicsSSD1306::getClipRect(int16_t& x, int16_t& y, uint16_t& w, uint16_t&
     int32_t cy;
     int32_t cw;
     int32_t ch;
-    canvas.getClipRect(&cx, &cx, &cw, &ch);
+    canvas.getClipRect(&cx, &cy, &cw, &ch);
     x = static_cast<int16_t>(cx);
     y = static_cast<int16_t>(cy);
     w = static_cast<int16_t>(cw);
