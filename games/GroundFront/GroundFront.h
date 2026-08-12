@@ -1,25 +1,16 @@
 // ------------------------------------------------------------
 // PRUZEA Sample Game
 //
-// This sample demonstrates the basic structure and common
-// features used when developing games with PRUZEA.
+// GroundFront updated for PRUZEA 1.2.1.
 //
 // Included features:
-//
-// - Title screen
-// - Main game loop
-// - Pause system
-// - Ranking save/load
-// - Particle effects
-// - Enemy spawning
-// - Five unique boss battles
-// - Bullet patterns
-// - Collision detection
-// - BGM and sound effects
-//
-// Use this project as a reference when creating your own
-// games with PRUZEA.
-// ----------
+// - Title / Pause / Result / Ranking screens
+// - Five boss battles
+// - Smaller, easier-to-read enemy bullets
+// - Bomb, life-up, weapon item, homing weapon
+// - One stage-specific enemy for each stage
+// - Updated player craft silhouette (double-delta style)
+// ------------------------------------------------------------
 
 #pragma once
 #include "PRUZEA.h"
@@ -57,7 +48,26 @@ private:
         ENEMY_BIRD,
         ENEMY_BALLOON,
         ENEMY_TANK,
-        ENEMY_DRONE
+        ENEMY_DRONE,
+        ENEMY_STAGE_SPECIAL
+    };
+
+    enum WeaponType : uint8_t {
+        WEAPON_NORMAL,
+        WEAPON_SPREAD,
+        WEAPON_HOMING
+    };
+
+    enum PlayerBulletType : uint8_t {
+        PLAYER_BULLET_NORMAL,
+        PLAYER_BULLET_HOMING
+    };
+
+    enum ItemType : uint8_t {
+        ITEM_NONE,
+        ITEM_WEAPON,
+        ITEM_BOMB,
+        ITEM_LIFE
     };
 
     struct Player {
@@ -75,6 +85,9 @@ private:
         float vx;
         float vy;
         uint8_t power;
+        PlayerBulletType type;
+        float turnRate;
+        uint64_t bornMsec;
     };
 
     struct Enemy {
@@ -122,10 +135,20 @@ private:
         uint64_t endMsec;
     };
 
-    static constexpr uint8_t MAX_PLAYER_BULLETS = 28;
+    struct Item {
+        bool active;
+        ItemType type;
+        float x;
+        float y;
+        float vy;
+        uint64_t bornMsec;
+    };
+
+    static constexpr uint8_t MAX_PLAYER_BULLETS = 36;
     static constexpr uint8_t MAX_ENEMIES = 18;
     static constexpr uint8_t MAX_ENEMY_BULLETS = 72;
     static constexpr uint8_t MAX_PARTICLES = 32;
+    static constexpr uint8_t MAX_ITEMS = 8;
     static constexpr uint8_t RANKING_COUNT = 5;
 
     InternalMode mode_;
@@ -135,6 +158,7 @@ private:
     EnemyBullet enemyBullets_[MAX_ENEMY_BULLETS];
     Boss boss_;
     Particle particles_[MAX_PARTICLES];
+    Item items_[MAX_ITEMS];
 
     uint32_t score_;
     uint32_t ranking_[RANKING_COUNT];
@@ -151,6 +175,12 @@ private:
     uint32_t backgroundSeed_;
     bool scoreSaved_;
     bool rankingLoaded_;
+
+    WeaponType weaponType_;
+    uint8_t weaponLevel_;
+    uint8_t bombCount_;
+    bool homingFireRight_;
+    uint8_t shakeAmplitude_;
     const char* savePath_ = "ranking.txt";
 
     void resetRun();
@@ -163,16 +193,20 @@ private:
     void updateEnemyBullets(PRUZEA::Audio& audio, uint64_t now);
     void updateBoss(PRUZEA::Audio& audio, PRUZEA::Storage& storage, uint64_t now);
     void updateParticles(uint64_t now);
+    void updateItems(PRUZEA::Audio& audio, uint64_t now);
 
     void spawnEnemy(uint64_t now);
     void spawnBoss(uint64_t now, PRUZEA::Audio& audio);
     void firePlayerShot(PRUZEA::Audio& audio);
-    void fireEnemyAimed(float x, float y, float speed);
-    void fireEnemyFan(float x, float y, uint8_t count, float speed, float spread);
-    void fireEnemyRing(float x, float y, uint8_t count, float speed, float angleOffset);
-    void addPlayerBullet(float x, float y, float vx, float vy, uint8_t power);
+    void fireEnemyAimed(float x, float y, float speed, uint8_t radius = 2);
+    void fireEnemyFan(float x, float y, uint8_t count, float speed, float spread, uint8_t radius = 2);
+    void fireEnemyRing(float x, float y, uint8_t count, float speed, float angleOffset, uint8_t radius = 2);
+    void addPlayerBullet(float x, float y, float vx, float vy, uint8_t power, PlayerBulletType type, float turnRate = 0.0f);
     void addEnemyBullet(float x, float y, float vx, float vy, uint8_t radius);
     void addExplosion(float x, float y, uint8_t count, uint64_t now);
+    void spawnItem(float x, float y, ItemType type, uint64_t now);
+    void maybeDropItem(float x, float y, bool guaranteedWeapon, uint64_t now);
+    void useBomb(PRUZEA::Audio& audio, uint64_t now);
 
     bool hitCircle(float ax, float ay, float ar, float bx, float by, float br) const;
     void damagePlayer(PRUZEA::Audio& audio, uint64_t now);
@@ -191,6 +225,7 @@ private:
     void drawBoss(PRUZEA::Graphics& graphics, uint64_t now);
     void drawBullets(PRUZEA::Graphics& graphics);
     void drawParticles(PRUZEA::Graphics& graphics, uint64_t now);
+    void drawItems(PRUZEA::Graphics& graphics, uint64_t now);
     void drawPause(PRUZEA::Graphics& graphics);
     void drawResult(PRUZEA::Graphics& graphics, uint64_t now);
     void drawRanking(PRUZEA::Graphics& graphics, uint64_t now);
