@@ -36,12 +36,26 @@ foreach(PRUZEA_GAME_DIR IN LISTS PRUZEA_GAME_DIRS)
         continue()
     endif()
 
-    file(GLOB PRUZEA_CURRENT_GAME_SOURCES CONFIGURE_DEPENDS
-        "${PRUZEA_GAME_DIR}/*.cpp"
-    )
+    set(PRUZEA_CURRENT_GAME_SOURCES)
+    set(PRUZEA_CURRENT_GAME_INCLUDE_DIRS)
+    if (EXISTS "${PRUZEA_GAME_DIR}/CMakeLists.txt")
+        include("${PRUZEA_GAME_DIR}/CMakeLists.txt")
+    else()
+        file(GLOB PRUZEA_CURRENT_GAME_SOURCES CONFIGURE_DEPENDS
+            "${PRUZEA_GAME_DIR}/*.cpp"
+        )
+    endif()
+
+    if (NOT PRUZEA_CURRENT_GAME_SOURCES)
+        message(FATAL_ERROR "No sources configured for ${PRUZEA_GAME_NAME}")
+    endif()
+
     list(SORT PRUZEA_CURRENT_GAME_SOURCES)
     list(APPEND PRUZEA_GAME_SOURCES ${PRUZEA_CURRENT_GAME_SOURCES})
-    list(APPEND PRUZEA_GAME_INCLUDE_DIRS "${PRUZEA_GAME_DIR}")
+    list(APPEND PRUZEA_GAME_INCLUDE_DIRS
+        "${PRUZEA_GAME_DIR}"
+        ${PRUZEA_CURRENT_GAME_INCLUDE_DIRS}
+    )
     string(APPEND PRUZEA_GENERATED_GAME_INCLUDES "#include \"${PRUZEA_GAME_NAME}.h\"\n")
     string(APPEND PRUZEA_GENERATED_GAME_INSTANCES "static ${PRUZEA_GAME_NAME} pruzeaGame_${PRUZEA_GAME_NAME};\n")
     string(APPEND PRUZEA_GENERATED_GAME_REGISTRATIONS "    catalog.addGame(&pruzeaGame_${PRUZEA_GAME_NAME}, graphics);\n")

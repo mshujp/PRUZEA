@@ -30,6 +30,8 @@ lib/*
 !/games/CyberBeat/**
 !/games/GroundFront/
 !/games/GroundFront/**
+!/games/IronSwarm/
+!/games/IronSwarm/**
 !/games/NeonReversi/
 !/games/NeonReversi/**
 !/games/RCQualifying/
