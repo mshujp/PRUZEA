@@ -1,7 +1,6 @@
 #include "AquaDrop.h"
 
 #include <cstdio>
-#include <cstdlib>
 #include <cstring>
 
 using namespace PRUZEA;
@@ -315,8 +314,8 @@ bool AquaDrop::onDraw(Graphics& graphics, bool requestFullRedraw)
 
     if (shakeDurationMsec > 0 && !Platform::elapsed(now, shakeStartMsec, shakeDurationMsec))
     {
-        const int16_t offsetX = static_cast<int16_t>((rand() % 7) - 3);
-        const int16_t offsetY = static_cast<int16_t>((rand() % 5) - 2);
+        const int16_t offsetX = static_cast<int16_t>(Math::random(-3, 4));
+        const int16_t offsetY = static_cast<int16_t>(Math::random(-2, 3));
         graphics.setViewport(offsetX, offsetY);
     }
 
@@ -330,7 +329,6 @@ bool AquaDrop::onDraw(Graphics& graphics, bool requestFullRedraw)
         drawGame(graphics, now);
     }
 
-    graphics.resetViewport();
     dirty = false;
     return true;
 }
@@ -381,7 +379,7 @@ void AquaDrop::fillInitialBoard()
         const int16_t y = BOARD_ROWS - 1 - rowOffset;
         for (int16_t x = 0; x < BOARD_COLS; x++)
         {
-            if ((rand() % 100) < 72)
+            if (Math::chance(0.72f))
             {
                 uint8_t color = randomColor();
                 if (x >= 3 && board[y][x - 1] == color && board[y][x - 2] == color && board[y][x - 3] == color)
@@ -413,7 +411,7 @@ void AquaDrop::generateNextPair()
 
 uint8_t AquaDrop::randomColor() const
 {
-    return static_cast<uint8_t>((rand() % STAGE_COLOR_COUNT[stageIndex]) + 1);
+    return static_cast<uint8_t>(Math::random(1, static_cast<int>(STAGE_COLOR_COUNT[stageIndex]) + 1));
 }
 
 bool AquaDrop::isCellFree(int16_t x, int16_t y) const

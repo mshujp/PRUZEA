@@ -487,7 +487,10 @@ public:
     //   - The default viewport position is (0, 0).
     //   - Use setViewport() to move the visible area within the graphics buffer.
     //   - This may be used for camera movement or temporary screen effects.
+    //   - The viewport is applied when the graphics buffer is transferred to the display.
+    //   - Therefore, do not reset the viewport at the end of onDraw() if you want the current viewport offset to affect that frame.
     //   - When moving the viewport, draw enough background around the visible area to avoid exposing undrawn regions.
+    //   - For temporary effects, reset the viewport before drawing the first frame where the effect is no longer active.
     //   - [!IMPORTANT] AI WARNING FOR TEMPORARY VIEWPORT OFFSETS:
     //     - Always restore the viewport with resetViewport() when the effect ends.
     //     - Otherwise, the screen will remain offset.
@@ -495,6 +498,7 @@ public:
     //     If no extra buffer margin is available, moving the viewport may expose
     //     undrawn or clipped areas.
     //     The available margin depends on the active display backend.
+    //
     virtual void setViewport(int16_t viewportX, int16_t viewportY) = 0;
     virtual void resetViewport() = 0;
 
