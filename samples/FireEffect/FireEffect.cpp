@@ -1,5 +1,4 @@
 #include "FireEffect.h"
-#include <cstdlib>
 #include <cstring>
 
 using namespace PRUZEA;
@@ -157,7 +156,7 @@ void FireEffect::seedBottom()
     {
         for (int16_t x = 0; x < SCREEN_W; ++x)
         {
-            const uint8_t flicker = static_cast<uint8_t>(rand() % 12);
+            const uint8_t flicker = static_cast<uint8_t>(Math::random(12));
             heat[y][x] = static_cast<uint8_t>(MAX_HEAT - flicker);
         }
     }
@@ -181,11 +180,11 @@ void FireEffect::updateFire()
 
             uint8_t value = static_cast<uint8_t>(sum / 4);
             const uint8_t cooling = static_cast<uint8_t>(
-                COOLING_MIN + (rand() % (COOLING_MAX - COOLING_MIN + 1)));
+                Math::random(COOLING_MIN, COOLING_MAX + 1));
 
             value = (value > cooling) ? static_cast<uint8_t>(value - cooling) : 0;
 
-            const int16_t drift = static_cast<int16_t>((rand() % 3) - 1);
+            const int16_t drift = static_cast<int16_t>(Math::random(-1, 2));
             int16_t targetX = x + drift;
             if (targetX < 0) targetX += SCREEN_W;
             if (targetX >= SCREEN_W) targetX -= SCREEN_W;

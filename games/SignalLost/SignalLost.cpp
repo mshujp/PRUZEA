@@ -9,7 +9,7 @@ namespace {
 
 static const char SAMPLE_PNS[] = R"PNS(
 # PRUZEA Novel Script sample
-# Embedded in Flash for PRUZEA 1.0.
+# Embedded in Flash for PRUZEA 1.2.1.
 
 LABEL start
 
@@ -487,7 +487,9 @@ void SignalLost::resetRuntime() {
     selectedChoice_ = 0;
 
     currentLineNumber_ = 0;
-    waitEndMsec_ = 0;
+    waitStartMsec_ = 0;
+    waitDurationMsec_ = 0;
+    finishedStartMsec_ = 0;
 
     currentChapter_[0] = '\0';
     currentSpeaker_[0] = '\0';
@@ -508,7 +510,9 @@ void SignalLost::resetForNewGame() {
     selectedChoice_ = 0;
 
     currentLineNumber_ = 0;
-    waitEndMsec_ = 0;
+    waitStartMsec_ = 0;
+    waitDurationMsec_ = 0;
+    finishedStartMsec_ = 0;
 
     currentChapter_[0] = '\0';
     currentSpeaker_[0] = '\0';
@@ -696,6 +700,15 @@ PRUZEA::Game::GameState SignalLost::onUpdate(
     }
 
     if (screenDirty_) {
+        dirty = true;
+    }
+
+    if (mode_ == Mode::FINISHED &&
+        !PRUZEA::Platform::elapsed(
+            PRUZEA::Platform::getMsec(),
+            finishedStartMsec_,
+            FINISHED_TWEEN_MSEC
+        )) {
         dirty = true;
     }
 
@@ -1006,10 +1019,10 @@ bool SignalLost::executeWaitCommand(char* arguments) {
         return false;
     }
 
-    uint32_t durationMsec =
+    waitDurationMsec_ =
         static_cast<uint32_t>(seconds * 1000.0f);
+    waitStartMsec_ = PRUZEA::Platform::getMsec();
 
-    waitEndMsec_ = PRUZEA::Platform::getMsec() + durationMsec;
     modeBeforeWait_ = Mode::EXECUTING;
     mode_ = Mode::WAITING_TIME;
     return true;
@@ -1024,6 +1037,7 @@ bool SignalLost::executeWaitKeyCommand() {
 
 bool SignalLost::executeEndCommand() {
     scriptEnded_ = true;
+    finishedStartMsec_ = PRUZEA::Platform::getMsec();
     mode_ = Mode::FINISHED;
     screenDirty_ = true;
     return true;
@@ -1852,9 +1866,13 @@ void SignalLost::updateChoices(
 }
 
 void SignalLost::updateTimedWait() {
-    uint32_t now = PRUZEA::Platform::getMsec();
+    const uint32_t now = PRUZEA::Platform::getMsec();
 
-    if (static_cast<int32_t>(now - waitEndMsec_) < 0) {
+    if (!PRUZEA::Platform::elapsed(
+            now,
+            waitStartMsec_,
+            waitDurationMsec_
+        )) {
         return;
     }
 
@@ -1909,7 +1927,8 @@ bool SignalLost::onDraw(
         return false;
     }
 
-    graphics.setViewport(0, 0);
+    graphics.resetViewport();
+    const uint32_t now = PRUZEA::Platform::getMsec();
 
     switch (mode_) {
     case Mode::TITLE:
@@ -1917,7 +1936,7 @@ bool SignalLost::onDraw(
         break;
 
     case Mode::FINISHED:
-        drawFinished(graphics);
+        drawFinished(graphics, now);
         break;
 
     case Mode::ERROR:
@@ -2007,7 +2026,7 @@ void SignalLost::drawTitle(
     );
 
     graphics.drawString(
-        "PNS 1.0 SAMPLE",
+        "PNS 1.2.1 SAMPLE",
         SCREEN_WIDTH / 2,
         218,
         COLOR_MUTED,
@@ -2033,13 +2052,34 @@ void SignalLost::drawNovel(
 }
 
 void SignalLost::drawFinished(
-    PRUZEA::Graphics& graphics
+    PRUZEA::Graphics& graphics,
+    uint32_t now
 ) {
-    graphics.fillScreen(COLOR_BACKGROUND);
+    drawNovel(graphics);
+    graphics.fillRectAlpha(
+        0,
+        0,
+        SCREEN_WIDTH,
+        SCREEN_HEIGHT,
+        112,
+        PRUZEA::Graphics::BLACK
+    );
+
+    const float t = PRUZEA::Math::clamp(
+        static_cast<float>(now - finishedStartMsec_) /
+            static_cast<float>(FINISHED_TWEEN_MSEC),
+        0.0f,
+        1.0f
+    );
+    const float eased =
+        PRUZEA::Tween::apply(t, PRUZEA::Tween::Ease::EASE_OUT_BACK);
+    const int16_t panelY = static_cast<int16_t>(
+        PRUZEA::Tween::lerp(-170.0f, 30.0f, eased)
+    );
 
     graphics.fillRoundRect(
         24,
-        30,
+        panelY,
         272,
         158,
         8,
@@ -2048,7 +2088,7 @@ void SignalLost::drawFinished(
 
     graphics.drawRoundRect(
         24,
-        30,
+        panelY,
         272,
         158,
         8,
@@ -2059,7 +2099,7 @@ void SignalLost::drawFinished(
     graphics.drawString(
         "END OF TRANSMISSION",
         SCREEN_WIDTH / 2,
-        70,
+        panelY + 40,
         COLOR_TEXT,
         PRUZEA::Graphics::SIZE_25B,
         PRUZEA::Graphics::HorizontalAlign::CENTER,
@@ -2071,7 +2111,7 @@ void SignalLost::drawFinished(
             ? currentChapter_
             : "STORY COMPLETE",
         SCREEN_WIDTH / 2,
-        108,
+        panelY + 78,
         COLOR_ACCENT,
         PRUZEA::Graphics::SIZE_18,
         PRUZEA::Graphics::HorizontalAlign::CENTER,
@@ -2081,7 +2121,7 @@ void SignalLost::drawFinished(
     graphics.drawString(
         "PRESS A TO RETURN",
         SCREEN_WIDTH / 2,
-        156,
+        panelY + 126,
         COLOR_SELECTED,
         PRUZEA::Graphics::SIZE_18,
         PRUZEA::Graphics::HorizontalAlign::CENTER,
@@ -2092,7 +2132,15 @@ void SignalLost::drawFinished(
 void SignalLost::drawError(
     PRUZEA::Graphics& graphics
 ) {
-    graphics.fillScreen(COLOR_BACKGROUND);
+    drawNovel(graphics);
+    graphics.fillRectAlpha(
+        0,
+        0,
+        SCREEN_WIDTH,
+        SCREEN_HEIGHT,
+        128,
+        PRUZEA::Graphics::BLACK
+    );
 
     graphics.fillRoundRect(
         12,

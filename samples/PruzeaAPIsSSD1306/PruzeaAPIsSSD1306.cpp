@@ -1,23 +1,23 @@
 #include "PruzeaAPIsSSD1306.h"
 
-#include <cmath>
 #include <cstdio>
 
 using PRUZEA::Audio;
 using PRUZEA::Graphics;
 using PRUZEA::Input;
 namespace Platform = PRUZEA::Platform;
+namespace Math = PRUZEA::Math;
 using PRUZEA::Storage;
 
 namespace {
 constexpr uint16_t TARGET_W = PRUZEA::Display::SSD1306_SCREEN_W;
 constexpr uint16_t TARGET_H = PRUZEA::Display::SSD1306_SCREEN_H;
-constexpr uint16_t LOGICAL_W = TARGET_W; 
+constexpr uint16_t LOGICAL_W = TARGET_W;
 constexpr uint16_t LOGICAL_H = TARGET_H;
 
 constexpr uint32_t STEP_MSEC = 3500;
 constexpr uint32_t HOLD_MSEC = 1400;
-constexpr uint8_t STEP_COUNT = 20;
+constexpr uint8_t STEP_COUNT = 25;
 
 constexpr Graphics::Color OFF = Graphics::SSD1306_OFF;
 constexpr Graphics::Color ON = Graphics::SSD1306_ON;
@@ -39,14 +39,19 @@ const char* const STEP_NAMES[STEP_COUNT] = {
     "drawCircle XY",
     "fillCircle",
     "fillCircle XY",
+    "Arc",
     "Font / measure",
     "Alignment",
-    "Viewport",
-    "Sprite"
+    "Viewport / Shake",
+    "Camera / World",
+    "Clip Rect",
+    "Sprite",
+    "Sprite Transform",
+    "SpriteSheet"
 };
 
 // 8x8 monochrome-friendly speaker-like sprite.
-// BLACK is transparent when drawn.
+// OFF is transparent when drawn.
 static const uint16_t TEST_SPRITE[8 * 8] = {
     OFF,OFF,ON, ON, OFF,OFF,OFF,OFF,
     OFF,ON, ON, ON, OFF,ON, OFF,OFF,
@@ -56,6 +61,36 @@ static const uint16_t TEST_SPRITE[8 * 8] = {
     ON, ON, ON, ON, OFF,OFF,ON, OFF,
     OFF,ON, ON, ON, OFF,ON, OFF,OFF,
     OFF,OFF,ON, ON, OFF,OFF,OFF,OFF
+};
+
+// 2x2 sheet of 8x8 monochrome icons. The source is laid out as one 16x16 bitmap.
+static const uint16_t TEST_SPRITE_SHEET[16 * 16] = {
+    // Row 0
+    OFF,OFF,ON,ON,OFF,OFF,OFF,OFF,  OFF,OFF,OFF,ON,ON,OFF,OFF,OFF,
+    OFF,ON,ON,ON,OFF,ON,OFF,OFF,    OFF,OFF,ON,ON,ON,ON,OFF,OFF,
+    ON,ON,ON,ON,OFF,OFF,ON,OFF,     OFF,ON,ON,OFF,OFF,ON,ON,OFF,
+    ON,ON,ON,ON,OFF,ON,ON,OFF,      ON,ON,OFF,ON,ON,OFF,ON,ON,
+    ON,ON,ON,ON,OFF,ON,ON,OFF,      ON,ON,OFF,ON,ON,OFF,ON,ON,
+    ON,ON,ON,ON,OFF,OFF,ON,OFF,     OFF,ON,ON,OFF,OFF,ON,ON,OFF,
+    OFF,ON,ON,ON,OFF,ON,OFF,OFF,    OFF,OFF,ON,ON,ON,ON,OFF,OFF,
+    OFF,OFF,ON,ON,OFF,OFF,OFF,OFF,  OFF,OFF,OFF,ON,ON,OFF,OFF,OFF,
+    // Row 1
+    ON,OFF,OFF,OFF,OFF,OFF,OFF,ON,  OFF,OFF,ON,ON,ON,ON,OFF,OFF,
+    OFF,ON,OFF,OFF,OFF,OFF,ON,OFF,  OFF,ON,ON,OFF,OFF,ON,ON,OFF,
+    OFF,OFF,ON,OFF,OFF,ON,OFF,OFF,  ON,ON,OFF,OFF,OFF,OFF,ON,ON,
+    OFF,OFF,OFF,ON,ON,OFF,OFF,OFF,  ON,OFF,OFF,ON,ON,OFF,OFF,ON,
+    OFF,OFF,OFF,ON,ON,OFF,OFF,OFF,  ON,OFF,OFF,ON,ON,OFF,OFF,ON,
+    OFF,OFF,ON,OFF,OFF,ON,OFF,OFF,  ON,ON,OFF,OFF,OFF,OFF,ON,ON,
+    OFF,ON,OFF,OFF,OFF,OFF,ON,OFF,  OFF,ON,ON,OFF,OFF,ON,ON,OFF,
+    ON,OFF,OFF,OFF,OFF,OFF,OFF,ON,  OFF,OFF,ON,ON,ON,ON,OFF,OFF
+};
+
+static const Graphics::SpriteSheet TEST_SHEET = {
+    TEST_SPRITE_SHEET,
+    8,
+    8,
+    2,
+    2
 };
 }
 
@@ -74,7 +109,8 @@ void PruzeaAPIsSSD1306::onInit(Storage& storage) {
     drawStep = 0;
     inputMask = 0;
     stepStartMsec = Platform::getMsec();
-    speakerIconUntilMsec = 0;
+    speakerIconStartMsec = 0;
+    speakerIconDurationMsec = 0;
     dirty = true;
 }
 
@@ -95,10 +131,12 @@ PRUZEA::Game::GameState PruzeaAPIsSSD1306::onUpdate(
     }
 
     // The speaker icon must disappear even when no button is pressed.
-    if (speakerIconUntilMsec != 0 &&
-        static_cast<int32_t>(Platform::getMsec() - speakerIconUntilMsec) >= 0) {
-        speakerIconUntilMsec = 0;
-        dirty = true;
+    if (speakerIconDurationMsec != 0) {
+        const uint32_t now = Platform::getMsec();
+        if (Platform::elapsed(now, speakerIconStartMsec, speakerIconDurationMsec)) {
+            speakerIconDurationMsec = 0;
+            dirty = true;
+        }
     }
 
     return GameState::RUNNING;
@@ -109,7 +147,10 @@ bool PruzeaAPIsSSD1306::onDraw(Graphics& graphics, bool requestFullRedraw) {
         return false;
     }
 
+    // Every API page starts from a known graphics state.
     graphics.resetViewport();
+    graphics.resetCamera();
+    graphics.resetClipRect();
 
     switch (mode) {
         case Mode::TITLE:
@@ -120,6 +161,8 @@ bool PruzeaAPIsSSD1306::onDraw(Graphics& graphics, bool requestFullRedraw) {
             break;
     }
 
+    // Do not reset Viewport here. The Viewport / Shake page must keep its
+    // offset until the graphics buffer is transferred to the display.
     dirty = false;
     return true;
 }
@@ -152,7 +195,8 @@ void PruzeaAPIsSSD1306::changeStep(int8_t amount, Audio& audio) {
 void PruzeaAPIsSSD1306::playTestSE(
     Audio& audio, const Audio::Sound* sound, float gain, uint16_t iconMsec) {
     audio.playSE(sound, gain);
-    speakerIconUntilMsec = Platform::getMsec() + iconMsec;
+    speakerIconStartMsec = Platform::getMsec();
+    speakerIconDurationMsec = iconMsec;
     dirty = true;
 }
 
@@ -188,7 +232,7 @@ void PruzeaAPIsSSD1306::updateTitle(Input& input, Audio& audio) {
 }
 
 void PruzeaAPIsSSD1306::updateGraphics(Input& input, Audio& audio) {
-    // Moving graphics and viewport animation require continuous redraw.
+    // API pages contain moving examples, so redraw continuously while visible.
     dirty = true;
 
     if (input.justPressed(Input::A)) {
@@ -207,7 +251,8 @@ void PruzeaAPIsSSD1306::updateGraphics(Input& input, Audio& audio) {
         playTestSE(audio, &Audio::SE::NO_1, 0.25f, 130);
     }
 
-    if (Platform::getMsec() - stepStartMsec >= STEP_MSEC) {
+    const uint32_t now = Platform::getMsec();
+    if (Platform::elapsed(now, stepStartMsec, STEP_MSEC)) {
         changeStep(1, audio);
     }
 }
@@ -232,16 +277,26 @@ void PruzeaAPIsSSD1306::drawTitle(Graphics& g) {
 }
 
 void PruzeaAPIsSSD1306::drawGraphicsTest(Graphics& g) {
-    if (drawStep == 18) {
-        drawViewportTest(g);
-    } else {
-        g.resetViewport();
-        g.clearScreen();
-        const int16_t x = getAnimX(Platform::getMsec());
-        drawMovingShape(g, drawStep, x, 36);
+    g.clearScreen();
+
+    const uint32_t now = Platform::getMsec();
+    const int16_t x = getAnimX(now);
+
+    switch (drawStep) {
+        case 16: drawArcTest(g); break;
+        case 17: drawFontTest(g); break;
+        case 18: drawAlignmentTest(g); break;
+        case 19: drawViewportTest(g); break;
+        case 20: drawCameraTest(g); break;
+        case 21: drawClipRectTest(g); break;
+        case 22: drawSpriteTest(g); break;
+        case 23: drawSpriteTransformTest(g); break;
+        case 24: drawSpriteSheetTest(g); break;
+        default: drawMovingShape(g, drawStep, x, 36); break;
     }
 
-    // Keep UI fixed even while the viewport test moves the logical image.
+    // Camera and Clip pages restore their own state before returning.
+    // Viewport intentionally remains active so this header shakes with the screen.
     g.fillRect(0, 0, TARGET_W, 11, OFF);
     g.drawLine(0, 12, TARGET_W - 1, 12, ON);
 
@@ -314,18 +369,20 @@ void PruzeaAPIsSSD1306::drawMovingShape(
         case 15:
             g.fillCircle(x, y, 22, 11, ON);
             break;
-        case 16:
-            drawFontTest(g);
-            break;
-        case 17:
-            drawAlignmentTest(g);
-            break;
-        case 19:
-            drawSpriteTest(g);
-            break;
         default:
             break;
     }
+}
+
+void PruzeaAPIsSSD1306::drawArcTest(Graphics& g) {
+    const uint32_t elapsed = Platform::getMsec() - stepStartMsec;
+    const float phase = static_cast<float>(elapsed) * 0.0022f;
+
+    g.drawArc(24, 37, static_cast<uint16_t>(15), 0.0f, Math::PI + phase, ON);
+    g.drawArc(61, 37, static_cast<uint16_t>(17), static_cast<uint8_t>(4),
+              -Math::PI * 0.5f, Math::PI * 0.75f, ON);
+    g.fillArc(101, 37, static_cast<uint16_t>(18), static_cast<uint16_t>(11),
+              0.0f, Math::PI + phase * 0.5f, ON);
 }
 
 void PruzeaAPIsSSD1306::drawFontTest(Graphics& g) {
@@ -333,8 +390,13 @@ void PruzeaAPIsSSD1306::drawFontTest(Graphics& g) {
     g.drawString("SIZE_13", 3, 25, ON, Graphics::SIZE_13);
     g.drawString("SIZE_18", 3, 39, ON, Graphics::SIZE_18);
 
-    const uint16_t width = g.getTextWidth("WIDTH", Graphics::SIZE_10);
-    const uint16_t height = g.getTextHeight("WIDTH", Graphics::SIZE_10);
+    const char* measured = "WIDTH";
+    const uint16_t width = g.getTextWidth(measured, Graphics::SIZE_10);
+    const uint16_t height = g.getTextHeight(measured, Graphics::SIZE_10);
+
+    g.drawRect(66, 18, width, height, ON);
+    g.drawString(measured, 66, 18, ON, Graphics::SIZE_10);
+
     char text[20];
     snprintf(text, sizeof(text), "W%u H%u",
              static_cast<unsigned>(width),
@@ -373,42 +435,145 @@ void PruzeaAPIsSSD1306::drawAlignmentTest(Graphics& g) {
 }
 
 void PruzeaAPIsSSD1306::drawViewportTest(Graphics& g) {
+    // Viewport is a final presentation offset. Use it here as a screen shake.
+    const int16_t shakeX = static_cast<int16_t>(Math::random(-2, 3));
+    const int16_t shakeY = static_cast<int16_t>(Math::random(-2, 3));
+    g.setViewport(shakeX, shakeY);
+
+    for (int16_t x = 0; x < static_cast<int16_t>(TARGET_W); x += 16) {
+        g.drawLine(x, 13, x, TARGET_H - 1, ON);
+    }
+    for (int16_t y = 16; y < static_cast<int16_t>(TARGET_H); y += 12) {
+        g.drawLine(0, y, TARGET_W - 1, y, ON);
+    }
+
+    g.drawRoundRect(37, 18, 54, 34, 5, 2, ON);
+    g.drawString("SHAKE", 64, 35, ON, Graphics::SIZE_13,
+                 Graphics::HorizontalAlign::CENTER,
+                 Graphics::VerticalAlign::MIDDLE);
+}
+
+void PruzeaAPIsSSD1306::drawCameraTest(Graphics& g) {
     const uint32_t elapsed = Platform::getMsec() - stepStartMsec;
-    const float angle = static_cast<float>(elapsed) * 0.004f;
-    const int16_t vx = static_cast<int16_t>(std::sin(angle) * 24.0f);
-    const int16_t vy = static_cast<int16_t>(std::cos(angle) * 12.0f);
+    const float phase = static_cast<float>(elapsed) * 0.002f;
 
-    g.setViewport(vx, vy);
-    g.clearScreen();
+    Graphics::Camera camera;
+    camera.x = static_cast<int16_t>(Math::sin(phase) * 20.0f);
+    camera.y = static_cast<int16_t>(Math::cos(phase * 0.7f) * 6.0f);
+    camera.zoom = 1.0f + (Math::sin(phase * 0.5f) + 1.0f) * 0.20f;
+    camera.zoomCenterX = 64;
+    camera.zoomCenterY = 38;
+    g.setCamera(camera);
 
-    for (int16_t x = -64; x < static_cast<int16_t>(LOGICAL_W); x += 16) {
-        g.drawLine(x, -32, x, LOGICAL_H - 1, ON);
+    // World content moves and zooms.
+    for (int16_t x = -32; x <= 160; x += 16) {
+        g.drawLine(x, 13, x, 80, ON);
     }
-    for (int16_t y = -32; y < static_cast<int16_t>(LOGICAL_H); y += 16) {
-        g.drawLine(-64, y, LOGICAL_W - 1, y, ON);
+    for (int16_t y = 16; y <= 80; y += 12) {
+        g.drawLine(-32, y, 160, y, ON);
     }
+    g.drawCircle(64, 38, 8, ON);
+    g.drawRect(44, 25, 40, 26, ON);
 
-    g.fillCircle(64, 32, 9, ON);
-    g.drawRoundRect(37, 15, 54, 34, 5, 2, ON);
+    // Screen-space HUD is intentionally not affected by the camera.
+    g.resetCamera();
+    g.drawString("HUD", 124, 61, ON, Graphics::SIZE_10,
+                 Graphics::HorizontalAlign::RIGHT,
+                 Graphics::VerticalAlign::BOTTOM);
+}
+
+void PruzeaAPIsSSD1306::drawClipRectTest(Graphics& g) {
+    constexpr int16_t clipX = 28;
+    constexpr int16_t clipY = 20;
+    constexpr uint16_t clipW = 72;
+    constexpr uint16_t clipH = 32;
+
+    g.setClipRect(clipX, clipY, clipW, clipH);
+
+    const int16_t x = getAnimX(Platform::getMsec());
+    g.fillCircle(x, 36, 18, ON);
+    g.drawLine(0, 18, TARGET_W - 1, 58, ON);
+    g.drawLine(0, 58, TARGET_W - 1, 18, ON);
+
+    g.resetClipRect();
+    g.drawRect(clipX, clipY, clipW, clipH, ON);
+    g.drawString("CLIP", 64, 36, OFF, Graphics::SIZE_10,
+                 Graphics::HorizontalAlign::CENTER,
+                 Graphics::VerticalAlign::MIDDLE);
 }
 
 void PruzeaAPIsSSD1306::drawSpriteTest(Graphics& g) {
     const int16_t x = getAnimX(Platform::getMsec());
-    g.drawSprite(TEST_SPRITE, x - 8, 20, 8, 8, {
+
+    g.drawSprite(TEST_SPRITE, x - 12, 20, 8, 8, {
         .transparent = true,
         .transparentColor = OFF
     });
-    g.drawSprite(TEST_SPRITE, x, 27, 8, 8, {
+    g.drawSprite(TEST_SPRITE, x, 28, 8, 8, {
         .scale = 2,
         .transparent = true,
         .transparentColor = OFF
     });
-    g.drawSprite(TEST_SPRITE, x + 18, 35, 8, 8, {
+    g.drawSprite(TEST_SPRITE, x + 20, 36, 8, 8, {
         .scale = 3,
+        .transparent = true,
+        .transparentColor = OFF
+    });
+}
+
+void PruzeaAPIsSSD1306::drawSpriteTransformTest(Graphics& g) {
+    const uint32_t elapsed = Platform::getMsec() - stepStartMsec;
+    const float angle = static_cast<float>(elapsed) * 0.003f;
+
+    g.drawSprite(TEST_SPRITE, 21, 27, 8, 8, {
+        .scale = 2,
+        .angle = angle,
+        .transparent = true,
+        .transparentColor = OFF
+    });
+    g.drawSprite(TEST_SPRITE, 57, 27, 8, 8, {
+        .scale = 2,
         .flipX = true,
         .transparent = true,
         .transparentColor = OFF
     });
+    g.drawSprite(TEST_SPRITE, 93, 27, 8, 8, {
+        .scale = 2,
+        .flipY = true,
+        .transparent = true,
+        .transparentColor = OFF
+    });
+
+    g.drawString("ROT", 29, 58, ON, Graphics::SIZE_10,
+                 Graphics::HorizontalAlign::CENTER,
+                 Graphics::VerticalAlign::BOTTOM);
+    g.drawString("FX", 65, 58, ON, Graphics::SIZE_10,
+                 Graphics::HorizontalAlign::CENTER,
+                 Graphics::VerticalAlign::BOTTOM);
+    g.drawString("FY", 101, 58, ON, Graphics::SIZE_10,
+                 Graphics::HorizontalAlign::CENTER,
+                 Graphics::VerticalAlign::BOTTOM);
+}
+
+void PruzeaAPIsSSD1306::drawSpriteSheetTest(Graphics& g) {
+    const uint32_t elapsed = Platform::getMsec() - stepStartMsec;
+    const uint8_t frame = static_cast<uint8_t>((elapsed / 450u) % 4u);
+    const uint16_t column = frame % 2u;
+    const uint16_t row = frame / 2u;
+
+    g.drawSprite(TEST_SHEET, column, row, 48, 23, {
+        .scale = 4,
+        .transparent = true,
+        .transparentColor = OFF
+    });
+
+    char text[16];
+    snprintf(text, sizeof(text), "C%u R%u",
+             static_cast<unsigned>(column),
+             static_cast<unsigned>(row));
+    g.drawString(text, 64, 61, ON, Graphics::SIZE_10,
+                 Graphics::HorizontalAlign::CENTER,
+                 Graphics::VerticalAlign::BOTTOM);
 }
 
 void PruzeaAPIsSSD1306::drawInputOverlay(Graphics& g) {
@@ -441,7 +606,7 @@ void PruzeaAPIsSSD1306::drawInputOverlay(Graphics& g) {
                  Graphics::HorizontalAlign::CENTER,
                  Graphics::VerticalAlign::MIDDLE);
 
-    if (speakerIconUntilMsec != 0) {
+    if (speakerIconDurationMsec != 0) {
         drawSpeakerIcon(g, 108, 1);
     }
 }

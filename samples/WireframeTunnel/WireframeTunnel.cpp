@@ -1,6 +1,5 @@
 #include "WireframeTunnel.h"
 
-#include <cmath>
 #include <cstdlib>
 
 using namespace PRUZEA;
@@ -150,8 +149,8 @@ void WireframeTunnel::updateView(
 
     if (autoDrift)
     {
-        autoX = sinf(timeSec * AUTO_X_SPEED) * AUTO_X_AMPLITUDE;
-        autoY = sinf(timeSec * AUTO_Y_SPEED) * AUTO_Y_AMPLITUDE;
+        autoX = Math::sin(timeSec * AUTO_X_SPEED) * AUTO_X_AMPLITUDE;
+        autoY = Math::sin(timeSec * AUTO_Y_SPEED) * AUTO_Y_AMPLITUDE;
     }
 
     cameraX = manualX + autoX;
@@ -220,8 +219,8 @@ void WireframeTunnel::drawRing(
     Graphics& graphics,
     const Ring& ring)
 {
-    const float c = cosf(ring.twist);
-    const float s = sinf(ring.twist);
+    const float c = Math::cos(ring.twist);
+    const float s = Math::sin(ring.twist);
 
     const float corners[4][2] = {
         {-HALF_W, -HALF_H},
@@ -277,15 +276,15 @@ void WireframeTunnel::drawConnections(Graphics& graphics)
         const Ring& a = rings[i];
         const Ring& b = rings[nextIndex];
 
-        if (fabsf(a.z - b.z) > RING_SPACING * 1.5f)
+        if (Math::abs(a.z - b.z) > RING_SPACING * 1.5f)
         {
             continue;
         }
 
-        const float ca = cosf(a.twist);
-        const float sa = sinf(a.twist);
-        const float cb = cosf(b.twist);
-        const float sb = sinf(b.twist);
+        const float ca = Math::cos(a.twist);
+        const float sa = Math::sin(a.twist);
+        const float cb = Math::cos(b.twist);
+        const float sb = Math::sin(b.twist);
 
         const float corners[4][2] = {
             {-HALF_W, -HALF_H},

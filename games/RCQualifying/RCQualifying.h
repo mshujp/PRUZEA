@@ -74,8 +74,6 @@ private:
     void finishRun(PRUZEA::Audio& audio, PRUZEA::Storage& storage);
     void saveBests(PRUZEA::Storage& storage);
 
-    static float absf(float value);
-    static float wrap01(float value);
     static float distanceToSegmentSquared(float px, float py, const Point& a, const Point& b);
     static bool insideRoundedRect(float px, float py, float x, float y, float w, float h, float radius);
     static Point catmullRom(const Point& p0, const Point& p1, const Point& p2, const Point& p3, float t);

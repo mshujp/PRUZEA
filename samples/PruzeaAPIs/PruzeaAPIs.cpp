@@ -1,8 +1,6 @@
 #include "PruzeaAPIs.h"
 
-#include <cmath>
 #include <cstdio>
-#include <cstdlib>
 #include <cstring>
 
 using PRUZEA::Audio;
@@ -17,7 +15,7 @@ constexpr uint16_t SCREEN_W = 320;
 constexpr uint16_t SCREEN_H = 240;
 constexpr uint32_t DRAW_STEP_MSEC = 5000;
 constexpr uint32_t DRAW_HOLD_MSEC = 1000;
-constexpr uint8_t DRAW_STEP_COUNT = 21;
+constexpr uint8_t DRAW_STEP_COUNT = 27;
 constexpr uint8_t SE_COUNT = 12;
 constexpr uint8_t MUSIC_COUNT = 3;
 constexpr int16_t UI_SAFE_BOTTOM = 224;
@@ -51,10 +49,16 @@ const char* const DRAW_STEP_NAMES[DRAW_STEP_COUNT] = {
     "drawCircle ellipse",
     "fillCircle",
     "fillCircle ellipse",
+    "Arc",
+    "Gradient",
     "Font",
     "Alignment",
-    "Viewport",
+    "Text Metrics",
+    "Viewport / Shake",
+    "Camera",
+    "Clip Rect",
     "Sprite",
+    "Sprite Transform",
     "SpriteSheet"
 };
 
@@ -311,6 +315,8 @@ bool PruzeaAPIs::onDraw(Graphics& graphics, bool requestFullRedraw) {
     }
 
     graphics.resetViewport();
+    graphics.resetCamera();
+    graphics.resetClipRect();
     bool drew = false;
     switch (mode) {
         case Mode::TITLE: drew = drawTitle(graphics); break;
@@ -397,7 +403,7 @@ void PruzeaAPIs::enterStorageTest(Audio& audio, Storage& storage) {
 }
 
 void PruzeaAPIs::runStorageTest(Storage& storage) {
-    storageWriteValue = (static_cast<uint32_t>(rand()) << 1) ^ Platform::getMsec();
+    storageWriteValue = static_cast<uint32_t>(PRUZEA::Math::random(0, 0x7FFFFFFF)) ^ Platform::getMsec();
     storageReadValue = 0;
     storageAvailable = storage.isAvailable();
     storageWriteOk = false;
@@ -499,7 +505,7 @@ void PruzeaAPIs::updateDrawTest(Input& input, Audio& audio) {
         nextDrawStep(audio);
         return;
     }
-    if (Platform::getMsec() - stepStartMsec >= DRAW_STEP_MSEC) {
+    if (Platform::elapsed(Platform::getMsec(), stepStartMsec, DRAW_STEP_MSEC)) {
         nextDrawStep(audio);
     }
 }
@@ -603,32 +609,45 @@ bool PruzeaAPIs::drawTitle(Graphics& g) {
 
 bool PruzeaAPIs::drawDrawTest(Graphics& g, bool requestFullRedraw) {
     const bool staticStep =
-        drawStep == 16 ||
-        drawStep == 17 ||
-        drawStep == 19;
+        drawStep == 17 || // Gradient
+        drawStep == 18 || // Font
+        drawStep == 19 || // Alignment
+        drawStep == 20 || // Text Metrics
+        drawStep == 23 || // Clip Rect
+        drawStep == 24;   // Sprite
 
     if (staticStep && !requestFullRedraw && lastDrawStep == drawStep) {
         return false;
     }
-    if (staticStep) { 
+    if (staticStep) {
         lastDrawStep = drawStep;
     }
 
-    if (drawStep == 18) {
+    if (drawStep == 21) {
         drawViewportTest(g);
         return true;
     }
 
     drawBackground(g);
     drawHeader(g, getDrawStepName());
-    uint32_t now = Platform::getMsec();
-    int16_t x = getAnimX(now);
+
+    const uint32_t now = Platform::getMsec();
+    const int16_t x = getAnimX(now);
     drawMovingShape(g, drawStep, x, 130);
 
-    if (drawStep == 16) drawFontTest(g);
-    if (drawStep == 17) drawAlignmentTest(g);
-    if (drawStep == 19) drawSpriteTest(g);
-    if (drawStep == 20) drawSpriteSheetTest(g);
+    switch (drawStep) {
+        case 16: drawArcTest(g); break;
+        case 17: drawGradientTest(g); break;
+        case 18: drawFontTest(g); break;
+        case 19: drawAlignmentTest(g); break;
+        case 20: drawTextMetricsTest(g); break;
+        case 22: drawCameraTest(g); break;
+        case 23: drawClipRectTest(g); break;
+        case 24: drawSpriteTest(g); break;
+        case 25: drawSpriteTransformTest(g); break;
+        case 26: drawSpriteSheetTest(g); break;
+        default: break;
+    }
 
     drawCenteredHint(g, "A: Next   B/START: Title", 214);
     return true;
@@ -801,6 +820,45 @@ void PruzeaAPIs::drawMovingShape(Graphics& g, uint8_t step, int16_t x, int16_t y
     }
 }
 
+void PruzeaAPIs::drawArcTest(Graphics& g) {
+    const uint32_t now = Platform::getMsec();
+    const float phase = static_cast<float>(now - stepStartMsec) * 0.0025f;
+    const float sweep = PRUZEA::Math::PI * (0.55f + 0.30f * (PRUZEA::Math::sin(phase) + 1.0f));
+
+    g.drawArc(62, 112, 30, 0.0f, sweep, COL_ACCENT);
+    g.drawArc(130, 112, static_cast<uint16_t>(34), static_cast<uint8_t>(7),
+              PRUZEA::Math::HALF_PI, PRUZEA::Math::HALF_PI + sweep, COL_GREEN);
+    g.drawArc(204, 112, static_cast<uint16_t>(38), static_cast<uint16_t>(24),
+              -PRUZEA::Math::HALF_PI, -PRUZEA::Math::HALF_PI + sweep, COL_PURPLE);
+    g.fillArc(278, 112, 30, PRUZEA::Math::PI, PRUZEA::Math::PI + sweep, COL_WARN);
+
+    g.drawString("draw", 62, 162, COL_DIM, Graphics::SIZE_13,
+                 Graphics::HorizontalAlign::CENTER, Graphics::VerticalAlign::MIDDLE);
+    g.drawString("thick", 130, 162, COL_DIM, Graphics::SIZE_13,
+                 Graphics::HorizontalAlign::CENTER, Graphics::VerticalAlign::MIDDLE);
+    g.drawString("ellipse", 204, 162, COL_DIM, Graphics::SIZE_13,
+                 Graphics::HorizontalAlign::CENTER, Graphics::VerticalAlign::MIDDLE);
+    g.drawString("fill", 278, 162, COL_DIM, Graphics::SIZE_13,
+                 Graphics::HorizontalAlign::CENTER, Graphics::VerticalAlign::MIDDLE);
+}
+
+void PruzeaAPIs::drawGradientTest(Graphics& g) {
+    g.fillRectGradient(22, 62, 84, 112, COL_ACCENT, COL_PURPLE, Graphics::HORIZONRAL_LINEAR);
+    g.fillRectGradient(118, 62, 84, 112, COL_GREEN, COL_DANGER, Graphics::VERTICAL_LINEAR);
+    g.fillRectGradient(214, 62, 84, 112, COL_WARN, COL_BG, Graphics::RADIAL_CENTER);
+
+    g.drawRect(22, 62, 84, 112, COL_LINE);
+    g.drawRect(118, 62, 84, 112, COL_LINE);
+    g.drawRect(214, 62, 84, 112, COL_LINE);
+
+    g.drawString("H", 64, 188, COL_TEXT, Graphics::SIZE_13,
+                 Graphics::HorizontalAlign::CENTER, Graphics::VerticalAlign::MIDDLE);
+    g.drawString("V", 160, 188, COL_TEXT, Graphics::SIZE_13,
+                 Graphics::HorizontalAlign::CENTER, Graphics::VerticalAlign::MIDDLE);
+    g.drawString("RADIAL", 256, 188, COL_TEXT, Graphics::SIZE_13,
+                 Graphics::HorizontalAlign::CENTER, Graphics::VerticalAlign::MIDDLE);
+}
+
 void PruzeaAPIs::drawFontTest(Graphics& g) {
     const int16_t x = 22;
     int16_t y = 54;
@@ -827,31 +885,119 @@ void PruzeaAPIs::drawAlignmentTest(Graphics& g) {
     };
     for (int yi = 0; yi < 3; ++yi) {
         for (int xi = 0; xi < 3; ++xi) {
-            g.drawLine(xs[xi] - 8, ys[yi], xs[xi] + 8, ys[yi], COL_DIM);
-            g.drawLine(xs[xi], ys[yi] - 8, xs[xi], ys[yi] + 8, COL_DIM);
-            g.drawString(labels[yi][xi], xs[xi], ys[yi], COL_ACCENT, Graphics::SIZE_18, has[xi], vas[yi]);
+            g.drawLine(xs[xi] - 7, ys[yi], xs[xi] + 7, ys[yi], COL_DIM);
+            g.drawLine(xs[xi], ys[yi] - 7, xs[xi], ys[yi] + 7, COL_DIM);
+            g.drawString(labels[yi][xi], xs[xi], ys[yi], COL_ACCENT, Graphics::SIZE_13, has[xi], vas[yi]);
         }
     }
+
+    // Alignment is shared by text and shape overloads.
+    g.drawRect(160, 190, 62, 18, COL_GREEN,
+               Graphics::HorizontalAlign::CENTER, Graphics::VerticalAlign::MIDDLE);
+    g.drawString("shape", 160, 190, COL_TEXT, Graphics::SIZE_10,
+                 Graphics::HorizontalAlign::CENTER, Graphics::VerticalAlign::MIDDLE);
 }
 
+void PruzeaAPIs::drawTextMetricsTest(Graphics& g) {
+    const char* text = "PRUZEA";
+    const Graphics::Font font = Graphics::SIZE_25B;
+    const uint16_t w = g.getTextWidth(text, font);
+    const uint16_t h = g.getTextHeight(text, font);
+    const int16_t cx = 160;
+    const int16_t cy = 112;
+
+    g.drawRect(cx, cy, w, h, COL_GREEN,
+               Graphics::HorizontalAlign::CENTER, Graphics::VerticalAlign::MIDDLE);
+    g.drawString(text, cx, cy, COL_TEXT, font,
+                 Graphics::HorizontalAlign::CENTER, Graphics::VerticalAlign::MIDDLE);
+
+    char sizeText[40];
+    snprintf(sizeText, sizeof(sizeText), "width=%u  height=%u",
+             static_cast<unsigned>(w), static_cast<unsigned>(h));
+    g.drawString(sizeText, 160, 166, COL_ACCENT, Graphics::SIZE_18,
+                 Graphics::HorizontalAlign::CENTER, Graphics::VerticalAlign::MIDDLE);
+    g.drawString("getTextWidth / getTextHeight", 160, 188, COL_DIM, Graphics::SIZE_13,
+                 Graphics::HorizontalAlign::CENTER, Graphics::VerticalAlign::MIDDLE);
+}
+
+
 void PruzeaAPIs::drawViewportTest(Graphics& g) {
-    const uint32_t now = Platform::getMsec();
-    const float t = static_cast<float>(now - stepStartMsec) * 0.004f;
-    const int16_t vx = static_cast<int16_t>(sinf(t) * 24.0f);
-    const int16_t vy = static_cast<int16_t>(cosf(t) * 18.0f);
-    g.setViewport(vx, vy);
+    // Viewport is applied when the graphics buffer is presented, so keep the
+    // offset active after this function returns. onDraw() resets it next frame.
+    const int16_t shakeX = static_cast<int16_t>(PRUZEA::Math::random(-4, 5));
+    const int16_t shakeY = static_cast<int16_t>(PRUZEA::Math::random(-3, 4));
+    g.setViewport(shakeX, shakeY);
+
     g.fillScreen(COL_BG);
-    for (int16_t x = -64; x < 384; x += 24) {
-        g.drawLine(x, -48, x, 288, COL_LINE);
+    for (int16_t x = -24; x <= 344; x += 24) {
+        g.drawLine(x, -24, x, 264, COL_LINE);
     }
-    for (int16_t y = -48; y < 288; y += 24) {
-        g.drawLine(-64, y, 384, y, COL_LINE);
+    for (int16_t y = -24; y <= 264; y += 24) {
+        g.drawLine(-24, y, 344, y, COL_LINE);
     }
     g.fillCircle(160, 120, 36, COL_ACCENT);
     g.drawRoundRect(98, 58, 124, 124, 10, 3, COL_PURPLE);
     drawHeader(g, getDrawStepName());
-    drawCenteredHint(g, "Viewport orbit test", 214);
+    g.drawString("SCREEN SHAKE", 160, 120, COL_BG, Graphics::SIZE_18,
+                 Graphics::HorizontalAlign::CENTER, Graphics::VerticalAlign::MIDDLE);
+    drawCenteredHint(g, "Viewport moves the final screen", 214);
 }
+
+void PruzeaAPIs::drawCameraTest(Graphics& g) {
+    const uint32_t now = Platform::getMsec();
+    const float phase = static_cast<float>(now - stepStartMsec) * 0.0015f;
+
+    Graphics::Camera camera;
+    camera.x = static_cast<int16_t>(60.0f + PRUZEA::Math::sin(phase) * 54.0f);
+    camera.y = static_cast<int16_t>(30.0f + PRUZEA::Math::cos(phase * 0.7f) * 24.0f);
+    camera.zoom = 1.0f + (PRUZEA::Math::sin(phase * 0.8f) + 1.0f) * 0.25f;
+    camera.zoomCenterX = 160;
+    camera.zoomCenterY = 120;
+    g.setCamera(camera);
+
+    // World-space content.
+    for (int16_t x = -80; x <= 480; x += 40) {
+        g.drawLine(x, -80, x, 360, COL_LINE);
+    }
+    for (int16_t y = -80; y <= 360; y += 40) {
+        g.drawLine(-80, y, 480, y, COL_LINE);
+    }
+    g.fillCircle(90, 80, 14, COL_GREEN);
+    g.fillCircle(220, 130, 20, COL_PURPLE);
+    g.fillCircle(340, 190, 16, COL_WARN);
+    g.drawRect(60, 48, 300, 176, 2, COL_ACCENT);
+
+    // HUD is screen-space: reset camera before drawing it.
+    g.resetCamera();
+    g.fillRectAlpha(8, 42, 142, 38, 180, Graphics::BLACK);
+    g.drawString("WORLD MOVES", 16, 49, COL_TEXT, Graphics::SIZE_13);
+    char zoomText[24];
+    snprintf(zoomText, sizeof(zoomText), "zoom %.2f", static_cast<double>(camera.zoom));
+    g.drawString(zoomText, 16, 64, COL_ACCENT, Graphics::SIZE_13);
+    g.drawString("HUD FIXED", 304, 49, COL_GREEN, Graphics::SIZE_13,
+                 Graphics::HorizontalAlign::RIGHT, Graphics::VerticalAlign::TOP);
+}
+
+void PruzeaAPIs::drawClipRectTest(Graphics& g) {
+    constexpr int16_t clipX = 70;
+    constexpr int16_t clipY = 62;
+    constexpr uint16_t clipW = 180;
+    constexpr uint16_t clipH = 112;
+
+    g.setClipRect(clipX, clipY, clipW, clipH);
+    for (int16_t x = 20; x < 310; x += 24) {
+        g.drawLine(x, 40, 320 - x, 198, COL_PURPLE);
+    }
+    g.fillCircle(160, 118, 82, COL_ACCENT);
+    g.drawCircle(92, 92, 56, COL_WARN);
+    g.drawCircle(232, 150, 62, COL_GREEN);
+    g.resetClipRect();
+
+    g.drawRect(clipX, clipY, clipW, clipH, 2, Graphics::WHITE);
+    g.drawString("CLIP AREA", 160, 184, COL_TEXT, Graphics::SIZE_13,
+                 Graphics::HorizontalAlign::CENTER, Graphics::VerticalAlign::MIDDLE);
+}
+
 
 void PruzeaAPIs::drawSpriteTest(Graphics& g) {
     const int16_t baseY = 74;
@@ -867,6 +1013,33 @@ void PruzeaAPIs::drawSpriteTest(Graphics& g) {
         g.drawString(label, x + 16, 178, COL_TEXT, Graphics::SIZE_18,
                      Graphics::HorizontalAlign::CENTER, Graphics::VerticalAlign::MIDDLE);
     }
+}
+
+void PruzeaAPIs::drawSpriteTransformTest(Graphics& g) {
+    const uint32_t now = Platform::getMsec();
+    const float angle = static_cast<float>(now - stepStartMsec) * 0.0025f;
+
+    struct Item {
+        int16_t x;
+        const char* label;
+        Graphics::SpriteOptions options;
+    };
+
+    Item items[4] = {
+        {48,  "ROTATE", {.scale = 3, .angle = angle, .transparent = true, .transparentColor = Graphics::BLACK}},
+        {118, "FLIP X", {.scale = 3, .flipX = true, .transparent = true, .transparentColor = Graphics::BLACK}},
+        {188, "FLIP Y", {.scale = 3, .flipY = true, .transparent = true, .transparentColor = Graphics::BLACK}},
+        {258, "BOTH",   {.scale = 3, .angle = -angle * 0.6f, .flipX = true, .flipY = true, .transparent = true, .transparentColor = Graphics::BLACK}}
+    };
+
+    for (const Item& item : items) {
+        g.drawSprite(DUMMY_SPRITE, item.x - 24, 82, 16, 16, item.options);
+        g.drawString(item.label, item.x, 164, COL_TEXT, Graphics::SIZE_10,
+                     Graphics::HorizontalAlign::CENTER, Graphics::VerticalAlign::MIDDLE);
+    }
+
+    g.drawString("angle / flipX / flipY", 160, 190, COL_DIM, Graphics::SIZE_13,
+                 Graphics::HorizontalAlign::CENTER, Graphics::VerticalAlign::MIDDLE);
 }
 
 void PruzeaAPIs::drawSpriteSheetTest(Graphics& g)

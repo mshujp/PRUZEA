@@ -5,9 +5,9 @@
 // -----------------------------------------------------------------------------
 // PRUZEA APIs - SSD1306 Test
 //
-// Minimal hardware test for SSD1306 systems.
-// Tests Graphics continuously, Input on the same screen, and Audio with SE.
-// Storage and independent Audio test screens are intentionally omitted.
+// Compact API reference for SSD1306 systems.
+// Graphics features that have a meaningful monochrome implementation are
+// demonstrated here. Alpha blending, gradients, and decoded images are omitted.
 // -----------------------------------------------------------------------------
 
 class PruzeaAPIsSSD1306 : public PRUZEA::Game {
@@ -53,10 +53,15 @@ private:
                          uint8_t step,
                          int16_t x,
                          int16_t y);
+    void drawArcTest(PRUZEA::Graphics& graphics);
     void drawFontTest(PRUZEA::Graphics& graphics);
     void drawAlignmentTest(PRUZEA::Graphics& graphics);
     void drawViewportTest(PRUZEA::Graphics& graphics);
+    void drawCameraTest(PRUZEA::Graphics& graphics);
+    void drawClipRectTest(PRUZEA::Graphics& graphics);
     void drawSpriteTest(PRUZEA::Graphics& graphics);
+    void drawSpriteTransformTest(PRUZEA::Graphics& graphics);
+    void drawSpriteSheetTest(PRUZEA::Graphics& graphics);
     void drawInputOverlay(PRUZEA::Graphics& graphics);
     void drawSpeakerIcon(PRUZEA::Graphics& graphics, int16_t x, int16_t y);
 
@@ -67,5 +72,6 @@ private:
     uint8_t drawStep = 0;
     uint16_t inputMask = 0;
     uint32_t stepStartMsec = 0;
-    uint32_t speakerIconUntilMsec = 0;
+    uint32_t speakerIconStartMsec = 0;
+    uint16_t speakerIconDurationMsec = 0;
 };

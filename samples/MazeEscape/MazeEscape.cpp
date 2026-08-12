@@ -1,5 +1,4 @@
 #include "MazeEscape.h"
-#include <cmath>
 
 using namespace PRUZEA;
 
@@ -448,8 +447,8 @@ void MazeEscape::applyCamera(Graphics& graphics) const
 
 void MazeEscape::applyLightClip(Graphics& graphics, float width, float height) const
 {
-    const int16_t clipW = Math::clamp<int16_t>(static_cast<int16_t>(std::round(width)), 1, SCREEN_W);
-    const int16_t clipH = Math::clamp<int16_t>(static_cast<int16_t>(std::round(height)), 1, SCREEN_H);
+    const int16_t clipW = Math::clamp<int16_t>(static_cast<int16_t>(Math::round(width)), 1, SCREEN_W);
+    const int16_t clipH = Math::clamp<int16_t>(static_cast<int16_t>(Math::round(height)), 1, SCREEN_H);
 
     const float playerScreenX = SCREEN_W * 0.5f +
         (player.x - cameraX - SCREEN_W * 0.5f) * cameraZoom;
@@ -457,11 +456,11 @@ void MazeEscape::applyLightClip(Graphics& graphics, float width, float height) c
         (player.y - cameraY - SCREEN_H * 0.5f) * cameraZoom;
 
     const int16_t clipX = Math::clamp<int16_t>(
-        static_cast<int16_t>(std::round(playerScreenX - clipW * 0.5f)),
+        static_cast<int16_t>(Math::round(playerScreenX - clipW * 0.5f)),
         0,
         SCREEN_W - clipW);
     const int16_t clipY = Math::clamp<int16_t>(
-        static_cast<int16_t>(std::round(playerScreenY - clipH * 0.5f)),
+        static_cast<int16_t>(Math::round(playerScreenY - clipH * 0.5f)),
         0,
         SCREEN_H - clipH);
 
@@ -481,10 +480,10 @@ void MazeEscape::drawMaze(Graphics& graphics) const
     const float worldTop = cameraY + centerY + (0.0f - centerY) / zoom;
     const float worldBottom = cameraY + centerY + (SCREEN_H - centerY) / zoom;
 
-    const int16_t minX = Math::clamp<int16_t>(static_cast<int16_t>(std::floor(worldLeft / TILE_SIZE)) - 1, 0, MAP_W - 1);
-    const int16_t maxX = Math::clamp<int16_t>(static_cast<int16_t>(std::floor(worldRight / TILE_SIZE)) + 1, 0, MAP_W - 1);
-    const int16_t minY = Math::clamp<int16_t>(static_cast<int16_t>(std::floor(worldTop / TILE_SIZE)) - 1, 0, MAP_H - 1);
-    const int16_t maxY = Math::clamp<int16_t>(static_cast<int16_t>(std::floor(worldBottom / TILE_SIZE)) + 1, 0, MAP_H - 1);
+    const int16_t minX = Math::clamp<int16_t>(static_cast<int16_t>(Math::floor(worldLeft / TILE_SIZE)) - 1, 0, MAP_W - 1);
+    const int16_t maxX = Math::clamp<int16_t>(static_cast<int16_t>(Math::floor(worldRight / TILE_SIZE)) + 1, 0, MAP_W - 1);
+    const int16_t minY = Math::clamp<int16_t>(static_cast<int16_t>(Math::floor(worldTop / TILE_SIZE)) - 1, 0, MAP_H - 1);
+    const int16_t maxY = Math::clamp<int16_t>(static_cast<int16_t>(Math::floor(worldBottom / TILE_SIZE)) + 1, 0, MAP_H - 1);
 
     const int16_t floorX = minX * TILE_SIZE;
     const int16_t floorY = minY * TILE_SIZE;
@@ -526,13 +525,13 @@ void MazeEscape::drawPlayer(Graphics& graphics) const
         0.30f
     };
 
-    const float dirX = std::cos(facingAngle);
-    const float dirY = std::sin(facingAngle);
+    const float dirX = Math::cos(facingAngle);
+    const float dirY = Math::sin(facingAngle);
     const float sideX = -dirY;
     const float sideY = dirX;
 
-    const int16_t tailX = static_cast<int16_t>(std::round(player.x - dirX * (PLAYER_RADIUS + 2.0f)));
-    const int16_t tailY = static_cast<int16_t>(std::round(player.y - dirY * (PLAYER_RADIUS + 2.0f)));
+    const int16_t tailX = static_cast<int16_t>(Math::round(player.x - dirX * (PLAYER_RADIUS + 2.0f)));
+    const int16_t tailY = static_cast<int16_t>(Math::round(player.y - dirY * (PLAYER_RADIUS + 2.0f)));
     graphics.fillCircle(tailX, tailY, 3, PLAYER_COLOR);
 
     const int frame = playerMoving ? mouthAnimation.frame() : 0;
@@ -548,8 +547,8 @@ void MazeEscape::drawPlayer(Graphics& graphics) const
         endAngle,
         PLAYER_COLOR);
 
-    const int16_t eyeX = static_cast<int16_t>(std::round(player.x + dirX * 2.0f - sideX * 3.0f));
-    const int16_t eyeY = static_cast<int16_t>(std::round(player.y + dirY * 2.0f - sideY * 3.0f));
+    const int16_t eyeX = static_cast<int16_t>(Math::round(player.x + dirX * 2.0f - sideX * 3.0f));
+    const int16_t eyeY = static_cast<int16_t>(Math::round(player.y + dirY * 2.0f - sideY * 3.0f));
     graphics.fillCircle(eyeX, eyeY, 2, Graphics::WHITE);
     graphics.fillCircle(eyeX, eyeY, 1, Graphics::BLACK);
 }
@@ -604,8 +603,8 @@ void MazeEscape::drawTitle(Graphics& graphics) const
     // but only the portion inside the message area is visible.
     const int16_t messageWidth = static_cast<int16_t>(graphics.getTextWidth(MESSAGE, Graphics::SIZE_13));
     const float cycleWidth = static_cast<float>(MESSAGE_W + messageWidth + MESSAGE_GAP);
-    const float travel = std::fmod(Platform::getMsec() * (MESSAGE_SPEED / 1000.0f), cycleWidth);
-    const int16_t messageX = static_cast<int16_t>(std::round(MESSAGE_X + MESSAGE_W - travel));
+    const float travel = Math::wrap(Platform::getMsec() * (MESSAGE_SPEED / 1000.0f), 0.0f, cycleWidth);
+    const int16_t messageX = static_cast<int16_t>(Math::round(MESSAGE_X + MESSAGE_W - travel));
 
     graphics.setClipRect(MESSAGE_X, MESSAGE_Y, MESSAGE_W, MESSAGE_H);
     graphics.drawString(

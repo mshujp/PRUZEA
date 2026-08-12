@@ -80,10 +80,16 @@ private:
     void drawHeader(PRUZEA::Graphics& graphics, const char* label);
     void drawCenteredHint(PRUZEA::Graphics& graphics, const char* text, int16_t y);
     void drawMovingShape(PRUZEA::Graphics& graphics, uint8_t step, int16_t x, int16_t y);
+    void drawArcTest(PRUZEA::Graphics& graphics);
+    void drawGradientTest(PRUZEA::Graphics& graphics);
     void drawFontTest(PRUZEA::Graphics& graphics);
     void drawAlignmentTest(PRUZEA::Graphics& graphics);
+    void drawTextMetricsTest(PRUZEA::Graphics& graphics);
     void drawViewportTest(PRUZEA::Graphics& graphics);
+    void drawCameraTest(PRUZEA::Graphics& graphics);
+    void drawClipRectTest(PRUZEA::Graphics& graphics);
     void drawSpriteTest(PRUZEA::Graphics& graphics);
+    void drawSpriteTransformTest(PRUZEA::Graphics& graphics);
     void drawSpriteSheetTest(PRUZEA::Graphics& graphics);
     void drawButtonLamp(PRUZEA::Graphics& graphics, int16_t x, int16_t y, int16_t w, int16_t h, const char* label, bool on);
 

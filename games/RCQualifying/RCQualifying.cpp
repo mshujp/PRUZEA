@@ -168,6 +168,8 @@ Game::GameState RCQualifying::onUpdate(Input& input, Audio& audio, Storage& stor
             startRun();
         }
         else if (input.justPressed(Input::B)) resetTitle();
+
+        if (!Platform::elapsed(now, modeStartMsec, 250u)) dirty = true;
         return Game::GameState::RUNNING;
     }
 
@@ -241,8 +243,8 @@ void RCQualifying::updateDriving(Input& input, Audio& audio, Storage& storage, f
     }
     else speed = Math::moveTowards(speed, 0.0f, COAST_DRAG * deltaSec);
 
-    const float speedRatio = Math::clamp(absf(speed) / MAX_FORWARD_SPEED, 0.0f, 1.0f);
-    const float steerAmount = absf(steering);
+    const float speedRatio = Math::clamp(Math::abs(speed) / MAX_FORWARD_SPEED, 0.0f, 1.0f);
+    const float steerAmount = Math::abs(steering);
     const float steeringLoss = steerAmount * steerAmount * speedRatio * STEERING_DRAG_RATE;
     speed *= Math::clamp(1.0f - steeringLoss * deltaSec, 0.0f, 1.0f);
 
@@ -334,14 +336,6 @@ void RCQualifying::saveBests(Storage& storage)
     if (ok && saveData.save(storage, getId(), "save.ini")) saveDirty = false;
 }
 
-float RCQualifying::absf(float value) { return value < 0.0f ? -value : value; }
-float RCQualifying::wrap01(float value)
-{
-    while (value < 0.0f) value += 1.0f;
-    while (value >= 1.0f) value -= 1.0f;
-    return value;
-}
-
 float RCQualifying::distanceToSegmentSquared(float px, float py, const Point& a, const Point& b)
 {
     const float vx = b.x - a.x;
@@ -385,7 +379,7 @@ RCQualifying::Point RCQualifying::getCoursePoint(float progress) const
 {
     uint8_t count = 0;
     const Point* points = getCoursePoints(count);
-    progress = wrap01(progress);
+    progress = Math::wrap(progress, 0.0f, 1.0f);
     const float scaled = progress * count;
     const int i1 = static_cast<int>(scaled) % count;
     const float local = scaled - static_cast<float>(static_cast<int>(scaled));
@@ -419,7 +413,7 @@ float RCQualifying::getTrackProgress(float x, float y) const
         }
         a = b;
     }
-    return wrap01(bestProgress);
+    return Math::wrap(bestProgress, 0.0f, 1.0f);
 }
 
 bool RCQualifying::insideRoundedRect(float px, float py, float x, float y, float w, float h, float radius)
@@ -567,7 +561,7 @@ void RCQualifying::drawHud(Graphics& g, uint32_t now) const
         g.drawString(text, 8, 6, Graphics::WHITE, Graphics::SIZE_13);
         drawTime(g, now - lapStartMsec, 222, 6, Graphics::YELLOW, Graphics::SIZE_13, Graphics::HorizontalAlign::RIGHT);
     }
-    const int speedDisplay = static_cast<int>(absf(speed) * 2.0f + 0.5f);
+    const int speedDisplay = static_cast<int>(Math::abs(speed) * 2.0f + 0.5f);
     std::snprintf(text, sizeof(text), "SPD %03d", speedDisplay);
     g.drawString(text, 312, 6, Graphics::CYAN, Graphics::SIZE_13,
                  Graphics::HorizontalAlign::RIGHT, Graphics::VerticalAlign::TOP);
@@ -602,29 +596,38 @@ void RCQualifying::drawTitle(Graphics& g, uint32_t now) const
 
 void RCQualifying::drawResult(Graphics& g) const
 {
-    g.fillRoundRect(49, 38, 222, 180, 10, Graphics::BLACK);
-    g.drawRoundRect(49, 38, 222, 180, 10, 2, Graphics::YELLOW);
-    g.drawString("QUALIFYING COMPLETE", 160, 48, Graphics::YELLOW, Graphics::SIZE_13,
+    g.fillRectAlpha(0, 0, SCREEN_W, SCREEN_H, 96, Graphics::BLACK);
+
+    const uint32_t now = Platform::getMsec();
+    const float t = Math::clamp(static_cast<float>(now - modeStartMsec) / 250.0f, 0.0f, 1.0f);
+    const float eased = Tween::apply(t, Tween::Ease::EASE_OUT_BACK);
+    const int16_t panelY = static_cast<int16_t>(Tween::lerp(-180.0f, 38.0f, eased));
+    const int16_t offsetY = static_cast<int16_t>(panelY - 38);
+
+    g.fillRoundRect(49, panelY, 222, 180, 10, Graphics::BLACK);
+    g.drawRoundRect(49, panelY, 222, 180, 10, 2, Graphics::YELLOW);
+    g.drawString("QUALIFYING COMPLETE", 160, static_cast<int16_t>(48 + offsetY), Graphics::YELLOW, Graphics::SIZE_13,
                  Graphics::HorizontalAlign::CENTER, Graphics::VerticalAlign::TOP);
-    g.drawString(getCourseName(), 160, 63, Graphics::LIGHTGRAY, Graphics::SIZE_10,
+    g.drawString(getCourseName(), 160, static_cast<int16_t>(63 + offsetY), Graphics::LIGHTGRAY, Graphics::SIZE_10,
                  Graphics::HorizontalAlign::CENTER, Graphics::VerticalAlign::TOP);
     for (uint8_t i = 0; i < QUALIFYING_LAPS; ++i)
     {
         char label[12];
         std::snprintf(label, sizeof(label), "LAP %u", static_cast<unsigned>(i + 1));
-        const int16_t y = static_cast<int16_t>(80 + i * 19);
+        const int16_t y = static_cast<int16_t>(80 + i * 19 + offsetY);
         g.drawString(label, 76, y, Graphics::WHITE, Graphics::SIZE_13);
         drawTime(g, lapTimes[i], 244, y, Graphics::CYAN, Graphics::SIZE_13, Graphics::HorizontalAlign::RIGHT);
     }
-    g.drawLine(70, 160, 250, 160, Graphics::DARKGRAY);
-    g.drawString("TOTAL", 76, 169, Graphics::WHITE, Graphics::SIZE_13);
-    drawTime(g, finishTotalMsec, 244, 169, Graphics::YELLOW, Graphics::SIZE_13, Graphics::HorizontalAlign::RIGHT);
-    g.drawString("A: AGAIN   B: TITLE", 160, 198, Graphics::LIGHTGRAY, Graphics::SIZE_10,
+    g.drawLine(70, static_cast<int16_t>(160 + offsetY), 250, static_cast<int16_t>(160 + offsetY), Graphics::DARKGRAY);
+    g.drawString("TOTAL", 76, static_cast<int16_t>(169 + offsetY), Graphics::WHITE, Graphics::SIZE_13);
+    drawTime(g, finishTotalMsec, 244, static_cast<int16_t>(169 + offsetY), Graphics::YELLOW, Graphics::SIZE_13, Graphics::HorizontalAlign::RIGHT);
+    g.drawString("A: AGAIN   B: TITLE", 160, static_cast<int16_t>(198 + offsetY), Graphics::LIGHTGRAY, Graphics::SIZE_10,
                  Graphics::HorizontalAlign::CENTER, Graphics::VerticalAlign::TOP);
 }
 
 void RCQualifying::drawPause(Graphics& g) const
 {
+    g.fillRectAlpha(0, 0, SCREEN_W, SCREEN_H, 96, Graphics::BLACK);
     g.fillRoundRect(84, 91, 152, 58, 8, Graphics::BLACK);
     g.drawRoundRect(84, 91, 152, 58, 8, 2, Graphics::WHITE);
     g.drawString("PAUSED", 160, 101, Graphics::WHITE, Graphics::SIZE_25B,

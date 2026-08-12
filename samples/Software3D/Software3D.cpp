@@ -1,76 +1,102 @@
 #include "Software3D.h"
-#include <cstdlib>
+
+using namespace PRUZEA;
 
 // Tuning parameters
-namespace {
-    constexpr float ROTATE_SPEED = 2.5f;     // Rotation speed (radians per second equivalent)
-    constexpr float CUBE_SIZE = 40.0f;       // Base size of the cube
-    constexpr float CAMERA_DISTANCE = 140.0f;// Distance from camera to the cube (affects perspective intensity)
-    constexpr float FOV = 200.0f;            // Field of View (focal length scale)
-    constexpr uint32_t BLINK_INTERVAL = 500; // Blink interval for title text in milliseconds
-}
+namespace
+{
+constexpr float ROTATE_SPEED = 2.5f;      // Rotation speed (radians per second equivalent)
+constexpr float CUBE_SIZE = 40.0f;        // Base size of the cube
+constexpr float CAMERA_DISTANCE = 140.0f; // Distance from camera to the cube (affects perspective intensity)
+constexpr float FOV = 200.0f;             // Field of View (focal length scale)
+constexpr uint32_t BLINK_INTERVAL = 500;  // Blink interval for title text in milliseconds
+} // namespace
 
-void Software3D::resetGame() {
+void Software3D::resetGame()
+{
     // Initial tilt angles
     angleX = 0.3f;
     angleY = 0.4f;
     autoRotate = false;
 
     // Initialize the 8 local vertices of the cube
-    localVertices[0] = { -CUBE_SIZE, -CUBE_SIZE, -CUBE_SIZE };
-    localVertices[1] = {  CUBE_SIZE, -CUBE_SIZE, -CUBE_SIZE };
-    localVertices[2] = {  CUBE_SIZE,  CUBE_SIZE, -CUBE_SIZE };
-    localVertices[3] = { -CUBE_SIZE,  CUBE_SIZE, -CUBE_SIZE };
-    localVertices[4] = { -CUBE_SIZE, -CUBE_SIZE,  CUBE_SIZE };
-    localVertices[5] = {  CUBE_SIZE, -CUBE_SIZE,  CUBE_SIZE };
-    localVertices[6] = {  CUBE_SIZE,  CUBE_SIZE,  CUBE_SIZE };
-    localVertices[7] = { -CUBE_SIZE,  CUBE_SIZE,  CUBE_SIZE };
+    localVertices[0] = {-CUBE_SIZE, -CUBE_SIZE, -CUBE_SIZE};
+    localVertices[1] = {CUBE_SIZE, -CUBE_SIZE, -CUBE_SIZE};
+    localVertices[2] = {CUBE_SIZE, CUBE_SIZE, -CUBE_SIZE};
+    localVertices[3] = {-CUBE_SIZE, CUBE_SIZE, -CUBE_SIZE};
+    localVertices[4] = {-CUBE_SIZE, -CUBE_SIZE, CUBE_SIZE};
+    localVertices[5] = {CUBE_SIZE, -CUBE_SIZE, CUBE_SIZE};
+    localVertices[6] = {CUBE_SIZE, CUBE_SIZE, CUBE_SIZE};
+    localVertices[7] = {-CUBE_SIZE, CUBE_SIZE, CUBE_SIZE};
 
     // Define indices for the 6 faces (Counter-Clockwise order when viewed from outside)
     // Front face
-    faceIndices[0][0] = 0; faceIndices[0][1] = 1; faceIndices[0][2] = 2; faceIndices[0][3] = 3;
+    faceIndices[0][0] = 0;
+    faceIndices[0][1] = 1;
+    faceIndices[0][2] = 2;
+    faceIndices[0][3] = 3;
     // Back face
-    faceIndices[1][0] = 5; faceIndices[1][1] = 4; faceIndices[1][2] = 7; faceIndices[1][3] = 6;
+    faceIndices[1][0] = 5;
+    faceIndices[1][1] = 4;
+    faceIndices[1][2] = 7;
+    faceIndices[1][3] = 6;
     // Top face
-    faceIndices[2][0] = 4; faceIndices[2][1] = 5; faceIndices[2][2] = 1; faceIndices[2][3] = 0;
+    faceIndices[2][0] = 4;
+    faceIndices[2][1] = 5;
+    faceIndices[2][2] = 1;
+    faceIndices[2][3] = 0;
     // Bottom face
-    faceIndices[3][0] = 3; faceIndices[3][1] = 2; faceIndices[3][2] = 6; faceIndices[3][3] = 7;
+    faceIndices[3][0] = 3;
+    faceIndices[3][1] = 2;
+    faceIndices[3][2] = 6;
+    faceIndices[3][3] = 7;
     // Left face
-    faceIndices[4][0] = 4; faceIndices[4][1] = 0; faceIndices[4][2] = 3; faceIndices[4][3] = 7;
+    faceIndices[4][0] = 4;
+    faceIndices[4][1] = 0;
+    faceIndices[4][2] = 3;
+    faceIndices[4][3] = 7;
     // Right face
-    faceIndices[5][0] = 1; faceIndices[5][1] = 5; faceIndices[5][2] = 6; faceIndices[5][3] = 2;
+    faceIndices[5][0] = 1;
+    faceIndices[5][1] = 5;
+    faceIndices[5][2] = 6;
+    faceIndices[5][3] = 2;
 
     // Assign colorful themes to each face
-    faceColors[0] = PRUZEA::Graphics::Color::RED;
-    faceColors[1] = PRUZEA::Graphics::Color::GREEN;
-    faceColors[2] = PRUZEA::Graphics::Color::BLUE;
-    faceColors[3] = PRUZEA::Graphics::Color::YELLOW;
-    faceColors[4] = PRUZEA::Graphics::Color::CYAN;
-    faceColors[5] = PRUZEA::Graphics::Color::MAGENTA;
+    faceColors[0] = Graphics::Color::RED;
+    faceColors[1] = Graphics::Color::GREEN;
+    faceColors[2] = Graphics::Color::BLUE;
+    faceColors[3] = Graphics::Color::YELLOW;
+    faceColors[4] = Graphics::Color::CYAN;
+    faceColors[5] = Graphics::Color::MAGENTA;
 }
 
-void Software3D::onInit(PRUZEA::Storage& storage) {
+void Software3D::onInit(Storage& storage)
+{
     currentMode = MODE_TITLE;
-    lastBlinkTime = PRUZEA::Platform::getMsec();
+    lastBlinkTime = Platform::getMsec();
     showPressStart = true;
     resetGame();
 }
 
-PRUZEA::Game::GameState Software3D::onUpdate(PRUZEA::Input& input, PRUZEA::Audio& audio, PRUZEA::Storage& storage, float deltaSec) {
-    uint32_t currentTime = PRUZEA::Platform::getMsec();
+Game::GameState Software3D::onUpdate(Input& input, Audio& audio, Storage& storage, float deltaSec)
+{
+    uint32_t currentTime = Platform::getMsec();
 
-    switch (currentMode) {
+    switch (currentMode)
+    {
         case MODE_TITLE:
             // Text blinking logic based on Real Time (per framework guidelines)
-            if (currentTime - lastBlinkTime >= BLINK_INTERVAL) {
+            if (currentTime - lastBlinkTime >= BLINK_INTERVAL)
+            {
                 showPressStart = !showPressStart;
                 lastBlinkTime = currentTime;
                 dirty = true;
             }
 
             // Start playing when START button is pressed
-            if (input.justPressed(PRUZEA::Input::START)) {
-                audio.playSE(&PRUZEA::Audio::SE::NO_1, 1.0f); // Confirmation sound
+            if (input.justPressed(Input::START))
+            {
+                audio.playSE(&Audio::SE::NO_1, 1.0f); // Confirmation sound
                 currentMode = MODE_PLAYING;
                 dirty = true;
             }
@@ -81,86 +107,100 @@ PRUZEA::Game::GameState Software3D::onUpdate(PRUZEA::Input& input, PRUZEA::Audio
             // Virtual delta time assuming 30fps target
             float dt = 1.0f / 30.0f;
 
-            if (input.justPressed(PRUZEA::Input::A)) {
+            if (input.justPressed(Input::A))
+            {
                 autoRotate = !autoRotate;
-                audio.playSE(&PRUZEA::Audio::SE::NO_1, 0.7f);
+                audio.playSE(&Audio::SE::NO_1, 0.7f);
                 dirty = true;
             }
 
-            if (input.repeat(PRUZEA::Input::X)) {
+            if (input.repeat(Input::X))
+            {
                 zoom += 0.02f;
                 if (zoom > 3.0f) zoom = 3.0f;
                 dirty = true;
             }
-            if (input.repeat(PRUZEA::Input::Y)) {
+            if (input.repeat(Input::Y))
+            {
                 zoom -= 0.02f;
                 if (zoom < 0.3f) zoom = 0.3f;
                 dirty = true;
             }
 
-            if (autoRotate) {
+            if (autoRotate)
+            {
                 angleY += ROTATE_SPEED * 0.55f * dt;
                 angleX += ROTATE_SPEED * 0.20f * dt;
                 isRotating = true;
             }
 
-            if (input.pressed(PRUZEA::Input::B)) {
-                if (input.pressed(PRUZEA::Input::UP)) {
+            if (input.pressed(Input::B))
+            {
+                if (input.pressed(Input::UP))
+                {
                     offsetY += 3;
                     if (offsetY > 100) offsetY = 100;
                     dirty = true;
                 }
-                if (input.pressed(PRUZEA::Input::DOWN)) {
+                if (input.pressed(Input::DOWN))
+                {
                     offsetY -= 3;
                     if (offsetY < -100) offsetY = -100;
                     dirty = true;
                 }
-                if (input.pressed(PRUZEA::Input::LEFT)) {
+                if (input.pressed(Input::LEFT))
+                {
                     offsetX += 3;
                     if (offsetX > 100) offsetX = 100;
                     dirty = true;
                 }
-                if (input.pressed(PRUZEA::Input::RIGHT)) {
+                if (input.pressed(Input::RIGHT))
+                {
                     offsetX -= 3;
                     if (offsetX < -100) offsetX = -100;
                     dirty = true;
                 }
-             } else {
+            }
+            else
+            {
                 // Handle D-pad inputs for rotation
-                if (input.pressed(PRUZEA::Input::UP)) {
+                if (input.pressed(Input::UP))
+                {
                     angleX -= ROTATE_SPEED * dt;
                     isRotating = true;
                 }
-                if (input.pressed(PRUZEA::Input::DOWN)) {
+                if (input.pressed(Input::DOWN))
+                {
                     angleX += ROTATE_SPEED * dt;
                     isRotating = true;
                 }
-                if (input.pressed(PRUZEA::Input::LEFT)) {
+                if (input.pressed(Input::LEFT))
+                {
                     angleY -= ROTATE_SPEED * dt;
                     isRotating = true;
                 }
-                if (input.pressed(PRUZEA::Input::RIGHT)) {
+                if (input.pressed(Input::RIGHT))
+                {
                     angleY += ROTATE_SPEED * dt;
                     isRotating = true;
                 }
             }
 
             // Audio feedback during manual rotation is throttled to avoid clogging channels.
-            if (isRotating) {
+            if (isRotating)
+            {
                 dirty = true;
-                const bool manualRotation =
-                    input.pressed(PRUZEA::Input::UP) ||
-                    input.pressed(PRUZEA::Input::DOWN) ||
-                    input.pressed(PRUZEA::Input::LEFT) ||
-                    input.pressed(PRUZEA::Input::RIGHT);
-                if (manualRotation && rand() % 8 == 0) {
-                    audio.playSE(&PRUZEA::Audio::SE::NO_5, 0.4f);
+                const bool manualRotation = input.pressed(Input::UP) || input.pressed(Input::DOWN) || input.pressed(Input::LEFT) || input.pressed(Input::RIGHT);
+                if (manualRotation && Math::chance(0.125f))
+                {
+                    audio.playSE(&Audio::SE::NO_5, 0.4f);
                 }
             }
 
             // Return to title when SELECT is pressed
-            if (input.justPressed(PRUZEA::Input::SELECT)) {
-                audio.playSE(&PRUZEA::Audio::SE::NO_2, 1.0f); // Cancel sound
+            if (input.justPressed(Input::SELECT))
+            {
+                audio.playSE(&Audio::SE::NO_2, 1.0f); // Cancel sound
                 currentMode = MODE_TITLE;
                 resetGame();
                 dirty = true;
@@ -168,58 +208,68 @@ PRUZEA::Game::GameState Software3D::onUpdate(PRUZEA::Input& input, PRUZEA::Audio
             break;
     }
 
-    return PRUZEA::Game::GameState::RUNNING;
+    return Game::GameState::RUNNING;
 }
 
-bool Software3D::onDraw(PRUZEA::Graphics& graphics, bool requestFullRedraw) {
+bool Software3D::onDraw(Graphics& graphics, bool requestFullRedraw)
+{
     // Skip rendering if no update is required
-    if (!requestFullRedraw && !dirty) {
+    if (!requestFullRedraw && !dirty)
+    {
         return false;
     }
 
     // Clear screen with a retro arcade dark-gray color
-    graphics.fillScreen(PRUZEA::Graphics::Color::DARKGRAY);
+    graphics.fillScreen(Graphics::Color::DARKGRAY);
 
     // Common UI Header
     graphics.resetCamera();
-    graphics.drawString("3D CUBE SOFTWARE RENDERER", 160, 15,
-                        PRUZEA::Graphics::Color::WHITE, PRUZEA::Graphics::SIZE_13,
-                        PRUZEA::Graphics::HorizontalAlign::CENTER, PRUZEA::Graphics::VerticalAlign::MIDDLE);
+    graphics.drawString(
+        "3D CUBE SOFTWARE RENDERER", 160, 15, Graphics::Color::WHITE, Graphics::SIZE_13, Graphics::HorizontalAlign::CENTER, Graphics::VerticalAlign::MIDDLE);
 
-    if (currentMode == MODE_TITLE) {
+    if (currentMode == MODE_TITLE)
+    {
         // Render Title Screen
-        graphics.drawString("PRESS START", 160, 120,
-                            showPressStart ? PRUZEA::Graphics::Color::YELLOW : PRUZEA::Graphics::Color::DARKGRAY,
-                            PRUZEA::Graphics::SIZE_25B,
-                            PRUZEA::Graphics::HorizontalAlign::CENTER, PRUZEA::Graphics::VerticalAlign::MIDDLE);
+        graphics.drawString("PRESS START",
+                            160,
+                            120,
+                            showPressStart ? Graphics::Color::YELLOW : Graphics::Color::DARKGRAY,
+                            Graphics::SIZE_25B,
+                            Graphics::HorizontalAlign::CENTER,
+                            Graphics::VerticalAlign::MIDDLE);
 
-        graphics.drawString("D-PAD: ROTATE   A: AUTO ROTATE", 160, 180,
-                            PRUZEA::Graphics::Color::LIGHTGRAY, PRUZEA::Graphics::SIZE_13,
-                            PRUZEA::Graphics::HorizontalAlign::CENTER, PRUZEA::Graphics::VerticalAlign::MIDDLE);
+        graphics.drawString("D-PAD: ROTATE   A: AUTO ROTATE",
+                            160,
+                            180,
+                            Graphics::Color::LIGHTGRAY,
+                            Graphics::SIZE_13,
+                            Graphics::HorizontalAlign::CENTER,
+                            Graphics::VerticalAlign::MIDDLE);
     }
-    else if (currentMode == MODE_PLAYING) {
+    else if (currentMode == MODE_PLAYING)
+    {
         // --- Start of 3D Pipeline ---
         Vector3D transformedVertices[VERTEX_COUNT];
         Point2D projectedPoints[VERTEX_COUNT];
 
-        if (zoom != 1.0f || offsetX != 0 || offsetY != 0) {
-            graphics.setCamera(
-                {
-                    .x = offsetX,
-                    .y = offsetY,
-                    .zoom = zoom,
-                    .zoomCenterX = static_cast<int16_t>(getLogicalScreenWidth() / 2),
-                    .zoomCenterY = static_cast<int16_t>(getLogicalScreenHeight() / 2)
-                }
-            );
+        if (zoom != 1.0f || offsetX != 0 || offsetY != 0)
+        {
+            graphics.setCamera({.x = offsetX,
+                                .y = offsetY,
+                                .zoom = zoom,
+                                .zoomCenterX = static_cast<int16_t>(getLogicalScreenWidth() / 2),
+                                .zoomCenterY = static_cast<int16_t>(getLogicalScreenHeight() / 2)});
         }
 
         // 1. Precompute sine and cosine values
-        float sinX = sinf(angleX); float cosX = cosf(angleX);
-        float sinY = sinf(angleY); float cosY = cosf(angleY);
+        float sinX = Math::sin(angleX);
+        float cosX = Math::cos(angleX);
+        float sinY = Math::sin(angleY);
+        float cosY = Math::cos(angleY);
 
         // 2. Vertex Transformation & Perspective Projection
-        for (int i = 0; i < VERTEX_COUNT; ++i) {
+        for (int i = 0; i < VERTEX_COUNT; ++i)
+        {
             // Y-axis rotation
             float x1 = localVertices[i].x * cosY - localVertices[i].z * sinY;
             float z1 = localVertices[i].x * sinY + localVertices[i].z * cosY;
@@ -233,7 +283,7 @@ bool Software3D::onDraw(PRUZEA::Graphics& graphics, bool requestFullRedraw) {
             float transY = y2;
             float transZ = z2 + CAMERA_DISTANCE;
 
-            transformedVertices[i] = { transX, transY, transZ };
+            transformedVertices[i] = {transX, transY, transZ};
 
             // Perspective Projection (3D -> 2D) offset to screen center (160, 120)
             projectedPoints[i].x = static_cast<int16_t>(160 + (transX * FOV) / transZ);
@@ -241,7 +291,8 @@ bool Software3D::onDraw(PRUZEA::Graphics& graphics, bool requestFullRedraw) {
         }
 
         // 3. Back-face Culling and Face Rendering
-        for (int i = 0; i < FACE_COUNT; ++i) {
+        for (int i = 0; i < FACE_COUNT; ++i)
+        {
             // Retrieve vertex indices for the current face
             int idx0 = faceIndices[i][0];
             int idx1 = faceIndices[i][1];
@@ -258,40 +309,55 @@ bool Software3D::onDraw(PRUZEA::Graphics& graphics, bool requestFullRedraw) {
             int32_t crossProduct = vecAX * vecBY - vecAY * vecBX;
 
             // Render only if the cross product is positive (Counter-Clockwise face visibility)
-            if (crossProduct > 0) {
+            if (crossProduct > 0)
+            {
                 // Split quad into 2 triangles for solid polygon filling (Flat Shading)
-                graphics.fillTriangle(projectedPoints[idx0].x, projectedPoints[idx0].y,
-                                      projectedPoints[idx1].x, projectedPoints[idx1].y,
-                                      projectedPoints[idx2].x, projectedPoints[idx2].y, faceColors[i]);
+                graphics.fillTriangle(projectedPoints[idx0].x,
+                                      projectedPoints[idx0].y,
+                                      projectedPoints[idx1].x,
+                                      projectedPoints[idx1].y,
+                                      projectedPoints[idx2].x,
+                                      projectedPoints[idx2].y,
+                                      faceColors[i]);
 
-                graphics.fillTriangle(projectedPoints[idx0].x, projectedPoints[idx0].y,
-                                      projectedPoints[idx2].x, projectedPoints[idx2].y,
-                                      projectedPoints[idx3].x, projectedPoints[idx3].y, faceColors[i]);
+                graphics.fillTriangle(projectedPoints[idx0].x,
+                                      projectedPoints[idx0].y,
+                                      projectedPoints[idx2].x,
+                                      projectedPoints[idx2].y,
+                                      projectedPoints[idx3].x,
+                                      projectedPoints[idx3].y,
+                                      faceColors[i]);
 
                 // Draw black outlines to distinguish edges clearly (classic retro gaming style)
-                graphics.drawLine(projectedPoints[idx0].x, projectedPoints[idx0].y, projectedPoints[idx1].x, projectedPoints[idx1].y, PRUZEA::Graphics::Color::BLACK);
-                graphics.drawLine(projectedPoints[idx1].x, projectedPoints[idx1].y, projectedPoints[idx2].x, projectedPoints[idx2].y, PRUZEA::Graphics::Color::BLACK);
-                graphics.drawLine(projectedPoints[idx2].x, projectedPoints[idx2].y, projectedPoints[idx3].x, projectedPoints[idx3].y, PRUZEA::Graphics::Color::BLACK);
-                graphics.drawLine(projectedPoints[idx3].x, projectedPoints[idx3].y, projectedPoints[idx0].x, projectedPoints[idx0].y, PRUZEA::Graphics::Color::BLACK);
+                graphics.drawLine(projectedPoints[idx0].x, projectedPoints[idx0].y, projectedPoints[idx1].x, projectedPoints[idx1].y, Graphics::Color::BLACK);
+                graphics.drawLine(projectedPoints[idx1].x, projectedPoints[idx1].y, projectedPoints[idx2].x, projectedPoints[idx2].y, Graphics::Color::BLACK);
+                graphics.drawLine(projectedPoints[idx2].x, projectedPoints[idx2].y, projectedPoints[idx3].x, projectedPoints[idx3].y, Graphics::Color::BLACK);
+                graphics.drawLine(projectedPoints[idx3].x, projectedPoints[idx3].y, projectedPoints[idx0].x, projectedPoints[idx0].y, Graphics::Color::BLACK);
             }
         }
 
         // Navigation guide (Placed to avoid overlaying the system OSD area at Y:225-240)
         graphics.resetCamera();
         graphics.drawString("X / Y: Zoom   B + D-Pad: Move Cube",
-                            160, 200,
-                            PRUZEA::Graphics::Color::LIGHTGRAY, PRUZEA::Graphics::SIZE_13,
-                            PRUZEA::Graphics::HorizontalAlign::CENTER, PRUZEA::Graphics::VerticalAlign::MIDDLE);
-         graphics.drawString(autoRotate ? "A: AUTO ON   SELECT: MENU"
-                                       : "A: AUTO OFF  SELECT: MENU",
-                            160, 215,
-                            PRUZEA::Graphics::Color::LIGHTGRAY, PRUZEA::Graphics::SIZE_13,
-                            PRUZEA::Graphics::HorizontalAlign::CENTER, PRUZEA::Graphics::VerticalAlign::MIDDLE);
+                            160,
+                            200,
+                            Graphics::Color::LIGHTGRAY,
+                            Graphics::SIZE_13,
+                            Graphics::HorizontalAlign::CENTER,
+                            Graphics::VerticalAlign::MIDDLE);
+        graphics.drawString(autoRotate ? "A: AUTO ON   SELECT: MENU" : "A: AUTO OFF  SELECT: MENU",
+                            160,
+                            215,
+                            Graphics::Color::LIGHTGRAY,
+                            Graphics::SIZE_13,
+                            Graphics::HorizontalAlign::CENTER,
+                            Graphics::VerticalAlign::MIDDLE);
     }
 
     dirty = false; // Reset the dirty flag
     return true;
 }
 
-void Software3D::onTerminate(PRUZEA::Storage& storage) {
+void Software3D::onTerminate(Storage& storage)
+{
 }

@@ -47,6 +47,7 @@ private:
     static constexpr uint32_t CPU_THINK_TIME_MS = 600;
     static constexpr uint32_t FLIP_DELAY_MS = 150;
     static constexpr uint32_t PASS_DISPLAY_TIME_MS = 800;
+    static constexpr uint32_t GAME_OVER_TWEEN_MS = 250;
 
     InternalMode m_mode;
     InternalMode m_nextModeAfterPass;

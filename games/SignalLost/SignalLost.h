@@ -51,6 +51,7 @@ private:
 
     static constexpr uint8_t TEXT_LINES_VISIBLE = 5;
     static constexpr uint8_t TEXT_CHARS_PER_LINE = 32;
+    static constexpr uint32_t FINISHED_TWEEN_MSEC = 250;
 
     // ============================================================
     // Internal game states
@@ -170,7 +171,9 @@ private:
     uint8_t selectedChoice_;
 
     uint32_t currentLineNumber_;
-    uint32_t waitEndMsec_;
+    uint32_t waitStartMsec_;
+    uint32_t waitDurationMsec_;
+    uint32_t finishedStartMsec_;
 
     char currentChapter_[CHAPTER_NAME_SIZE];
     char currentSpeaker_[SPEAKER_NAME_SIZE];
@@ -362,7 +365,7 @@ private:
 
     void drawTitle(PRUZEA::Graphics& graphics);
     void drawNovel(PRUZEA::Graphics& graphics);
-    void drawFinished(PRUZEA::Graphics& graphics);
+    void drawFinished(PRUZEA::Graphics& graphics, uint32_t now);
     void drawError(PRUZEA::Graphics& graphics);
 
     void drawHeader(PRUZEA::Graphics& graphics);

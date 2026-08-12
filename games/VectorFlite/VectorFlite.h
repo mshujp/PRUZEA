@@ -7,7 +7,6 @@ namespace PRUZEA
 
 class VectorFlite : public Game {
 public:
-    // --- 構造体・定数定義 ---
     static constexpr int MAX_ASTEROIDS = 8;
     static constexpr int MAX_BULLETS = 10;
     static constexpr int MAX_PARTICLES = 20;
@@ -33,7 +32,6 @@ public:
         bool active;
     };
 
-    // --- Gameクラスの仮想関数オーバーライド ---
     void onInit(Storage& storage) override;
     Game::GameState onUpdate(Input& input, Audio& audio, Storage& storage, float deltaSec) override;
     bool onDraw(Graphics& graphics, bool requestFullRedraw) override;
@@ -49,31 +47,30 @@ public:
     uint16_t getTargetScreenHeight() const override { return 240; }
 
 private:
-    // --- 内部状態管理用の列挙型 ---
     enum Mode {
         MODE_TITLE,
         MODE_PLAYING,
         MODE_GAME_OVER
     };
 
-    // --- ゲームシステム変数 ---
     Mode currentMode = MODE_TITLE;
     uint32_t score = 0;
     uint32_t highScore = 0;
-    float screenShakeTimer = 0.0f; // 画面シェイク時間
+    float screenShakeTimer = 0.0f;
 
-    // --- エンティティデータ ---
     Entity player;
     Bullet bullets[MAX_BULLETS];
     Entity asteroids[MAX_ASTEROIDS];
     Particle particles[MAX_PARTICLES];
 
-    // --- 演出・タイマー用変数 ---
     uint32_t stateStartTime = 0;
-    float lastShotTime = 0.0f;
-    float nextSpawnTime = 0.0f;
+    uint32_t lastShotMsec = 0;
+    uint32_t lastSpawnMsec = 0;
+    uint32_t spawnIntervalMsec = 0;
+    uint32_t blinkStartMsec = 0;
 
-    // --- 内部ヘルパー関数 ---
+    SaveData saveData;
+
     void resetGame();
     void spawnAsteroid();
     void spawnExplosion(float x, float y, uint16_t color);

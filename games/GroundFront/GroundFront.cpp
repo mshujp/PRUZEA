@@ -1,5 +1,4 @@
 #include "GroundFront.h"
-#include <cmath>
 #include <cstdlib>
 #include <cstring>
 #include <cstdio>
@@ -364,7 +363,7 @@ void GroundFront::firePlayerShot(Audio& audio) {
         const float turnRate = HOMING_TURN[level - 1];
         const float side = homingFireRight_ ? 7.0f : -7.0f;
         const float vx = homingFireRight_ ? 28.0f : -28.0f;
-        const float vy = -std::sqrt(speed * speed - vx * vx);
+        const float vy = -Math::sqrt(speed * speed - vx * vx);
         addPlayerBullet(player_.x + side, player_.y - 5.0f, vx, vy, 2, PLAYER_BULLET_HOMING, turnRate);
         homingFireRight_ = !homingFireRight_;
         break;
@@ -434,14 +433,14 @@ void GroundFront::updatePlayerBullets(uint64_t now) {
                 }
             }
             if (found) {
-                const float speed = std::sqrt(shot.vx * shot.vx + shot.vy * shot.vy);
-                float currentAngle = std::atan2(shot.vy, shot.vx);
-                const float targetAngle = std::atan2(targetY - shot.y, targetX - shot.x);
+                const float speed = Math::length(shot.vx, shot.vy);
+                float currentAngle = Math::atan2(shot.vy, shot.vx);
+                const float targetAngle = Math::atan2(targetY - shot.y, targetX - shot.x);
                 const float maxTurn = shot.turnRate * dt;
                 const float turn = clampf(normalizeAngle(targetAngle - currentAngle), -maxTurn, maxTurn);
                 currentAngle += turn;
-                shot.vx = std::cos(currentAngle) * speed;
-                shot.vy = std::sin(currentAngle) * speed;
+                shot.vx = Math::cos(currentAngle) * speed;
+                shot.vy = Math::sin(currentAngle) * speed;
             }
         }
 
@@ -562,11 +561,11 @@ void GroundFront::updateEnemies(Audio& audio, uint64_t now) {
         const float age = static_cast<float>(now - enemy.bornMsec) / 1000.0f;
 
         if (enemy.type == ENEMY_BIRD) {
-            enemy.x += std::sin(age * 4.0f + enemy.phase) * 38.0f * dt;
+            enemy.x += Math::sin(age * 4.0f + enemy.phase) * 38.0f * dt;
         } else if (enemy.type == ENEMY_BALLOON) {
-            enemy.x += std::sin(age * 2.0f + enemy.phase) * 20.0f * dt;
+            enemy.x += Math::sin(age * 2.0f + enemy.phase) * 20.0f * dt;
         } else if (enemy.type == ENEMY_DRONE) {
-            enemy.x += std::cos(age * 3.1f + enemy.phase) * 52.0f * dt;
+            enemy.x += Math::cos(age * 3.1f + enemy.phase) * 52.0f * dt;
         } else if (enemy.type == ENEMY_STAGE_SPECIAL) {
             switch (currentBossIndex_) {
             case 0:
@@ -576,15 +575,15 @@ void GroundFront::updateEnemies(Audio& audio, uint64_t now) {
                 if (enemy.y > 60.0f) enemy.vy = 10.0f;
                 break;
             case 2:
-                enemy.x += std::sin(age * 1.6f + enemy.phase) * 14.0f * dt;
+                enemy.x += Math::sin(age * 1.6f + enemy.phase) * 14.0f * dt;
                 break;
             case 3:
-                enemy.x += std::sin(age * 5.5f + enemy.phase) * 65.0f * dt;
+                enemy.x += Math::sin(age * 5.5f + enemy.phase) * 65.0f * dt;
                 break;
             default: {
                 const float dirX = player_.x - enemy.x;
                 const float dirY = player_.y - enemy.y;
-                const float len = std::sqrt(dirX * dirX + dirY * dirY);
+                const float len = Math::length(dirX, dirY);
                 if (len > 0.001f && age < 1.2f) {
                     enemy.x += (dirX / len) * 46.0f * dt;
                     enemy.y += (dirY / len) * 24.0f * dt;
@@ -656,24 +655,24 @@ void GroundFront::addEnemyBullet(float x, float y, float vx, float vy, uint8_t r
 void GroundFront::fireEnemyAimed(float x, float y, float speed, uint8_t radius) {
     const float dx = player_.x - x;
     const float dy = player_.y - y;
-    const float length = std::sqrt(dx * dx + dy * dy);
+    const float length = Math::length(dx, dy);
     if (length < 0.001f) return;
     addEnemyBullet(x, y, dx / length * speed, dy / length * speed, radius);
 }
 
 void GroundFront::fireEnemyFan(float x, float y, uint8_t count, float speed, float spread, uint8_t radius) {
-    const float base = std::atan2(player_.y - y, player_.x - x);
+    const float base = Math::atan2(player_.y - y, player_.x - x);
     const float center = static_cast<float>(count - 1) * 0.5f;
     for (uint8_t i = 0; i < count; ++i) {
         const float angle = base + (static_cast<float>(i) - center) * spread;
-        addEnemyBullet(x, y, std::cos(angle) * speed, std::sin(angle) * speed, radius);
+        addEnemyBullet(x, y, Math::cos(angle) * speed, Math::sin(angle) * speed, radius);
     }
 }
 
 void GroundFront::fireEnemyRing(float x, float y, uint8_t count, float speed, float angleOffset, uint8_t radius) {
     for (uint8_t i = 0; i < count; ++i) {
         const float angle = angleOffset + (2.0f * PI_F * static_cast<float>(i) / static_cast<float>(count));
-        addEnemyBullet(x, y, std::cos(angle) * speed, std::sin(angle) * speed, radius);
+        addEnemyBullet(x, y, Math::cos(angle) * speed, Math::sin(angle) * speed, radius);
     }
 }
 
@@ -739,7 +738,7 @@ void GroundFront::updateBoss(Audio& audio, Storage& storage, uint64_t now) {
     }
 
     const float amplitude = 42.0f + static_cast<float>(boss_.type) * 6.0f;
-    boss_.x = 160.0f + std::sin(age * (0.75f + boss_.type * 0.12f)) * amplitude;
+    boss_.x = 160.0f + Math::sin(age * (0.75f + boss_.type * 0.12f)) * amplitude;
 
     uint64_t interval = 1150;
     if (boss_.type == 1) interval = 980;
@@ -950,8 +949,8 @@ void GroundFront::addExplosion(float x, float y, uint8_t count, uint64_t now) {
             particles_[i].active = true;
             particles_[i].x = x;
             particles_[i].y = y;
-            particles_[i].vx = std::cos(angle) * speed;
-            particles_[i].vy = std::sin(angle) * speed;
+            particles_[i].vx = Math::cos(angle) * speed;
+            particles_[i].vy = Math::sin(angle) * speed;
             particles_[i].endMsec = now + 350 + static_cast<uint64_t>(rand() % 500);
             break;
         }

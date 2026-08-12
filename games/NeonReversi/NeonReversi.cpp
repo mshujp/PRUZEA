@@ -1,6 +1,4 @@
 #include "NeonReversi.h"
-#include <cstdlib>
-#include <cmath>
 #include <cstring>
 
 namespace PRUZEA
@@ -56,8 +54,7 @@ void NeonReversi::resetGame()
     m_playerScore = 2;
     m_cpuScore = 2;
     
-    // 【新仕様】先攻後攻をランダム（50%の確率）で決定
-    m_playerTurn = (rand() % 2 == 0);
+    m_playerTurn = Math::chance(0.5f);
 
     m_cursorX = 3;
     m_cursorY = 3;
@@ -232,7 +229,7 @@ void NeonReversi::doCPUMove()
     for (int y = 0; y < BOARD_SIZE; ++y) {
         for (int x = 0; x < BOARD_SIZE; ++x) {
             if (m_validMoves[y][x]) {
-                int16_t currentScore = weights[y][x] + (rand() % 5);
+                int16_t currentScore = weights[y][x] + Math::random(0, 5);
                 if (currentScore > bestScore) {
                     bestScore = currentScore;
                     bestX = x;
@@ -257,13 +254,13 @@ void NeonReversi::spawnParticles(int16_t x, int16_t y, Graphics::Color color, ui
                 m_particles[p].x = static_cast<float>(x);
                 m_particles[p].y = static_cast<float>(y);
                 
-                float angle = static_cast<float>(rand() % 360) * 3.14159f / 180.0f;
-                float speed = static_cast<float>((rand() % 40) + 10) * 0.1f;
+                float angle = Math::randomFloat(0.0f, Math::TWO_PI);
+                float speed = Math::randomFloat(1.0f, 5.0f);
                 
-                m_particles[p].vx = cosf(angle) * speed;
-                m_particles[p].vy = sinf(angle) * speed;
+                m_particles[p].vx = Math::cos(angle) * speed;
+                m_particles[p].vy = Math::sin(angle) * speed;
                 m_particles[p].color = color;
-                m_particles[p].life = static_cast<uint8_t>((rand() % 15) + 10);
+                m_particles[p].life = static_cast<uint8_t>(Math::random(10, 25));
                 break;
             }
         }
@@ -353,7 +350,7 @@ Game::GameState NeonReversi::onUpdate(Input& input, Audio& audio, Storage& stora
     }
 
     else if (m_mode == MODE_PASS) {
-        if (now - m_stateStartTime >= PASS_DISPLAY_TIME_MS) {
+        if (Platform::elapsed(now, m_stateStartTime, PASS_DISPLAY_TIME_MS)) {
             m_mode = m_nextModeAfterPass;
             if (m_mode == MODE_CPU_THINKING) {
                 m_stateStartTime = now;
@@ -362,14 +359,14 @@ Game::GameState NeonReversi::onUpdate(Input& input, Audio& audio, Storage& stora
     }
 
     else if (m_mode == MODE_CPU_THINKING) {
-        if (now - m_stateStartTime >= CPU_THINK_TIME_MS) {
+        if (Platform::elapsed(now, m_stateStartTime, CPU_THINK_TIME_MS)) {
             doCPUMove();
         }
     }
 
     else if (m_mode == MODE_FLIPPING) {
         if (m_flipCurrentIndex < m_flipTargetCount) {
-            if (now - m_lastFlipTime >= FLIP_DELAY_MS) {
+            if (Platform::elapsed(now, m_lastFlipTime, FLIP_DELAY_MS)) {
                 int8_t fx = m_flipTargets[m_flipCurrentIndex].x;
                 int8_t fy = m_flipTargets[m_flipCurrentIndex].y;
                 
@@ -404,10 +401,10 @@ Game::GameState NeonReversi::onUpdate(Input& input, Audio& audio, Storage& stora
         }
     }
 
-bool isEffectActive = false;
+    bool isEffectActive = false;
 
     if (m_shakeIntensity > 0) {
-        isEffectActive = true; // 画面揺れが続いている
+        isEffectActive = true;
     }
 
     for (uint8_t i = 0; i < MAX_PARTICLES; ++i) {
@@ -422,9 +419,11 @@ bool isEffectActive = false;
             break;
         }
     }
-    bool isStateChanging = (m_mode == MODE_CPU_THINKING) || 
-                           (m_mode == MODE_FLIPPING)     || 
-                           (m_mode == MODE_PASS);
+    bool isStateChanging = (m_mode == MODE_CPU_THINKING) ||
+                           (m_mode == MODE_FLIPPING)     ||
+                           (m_mode == MODE_PASS)         ||
+                           (m_mode == MODE_GAME_OVER &&
+                            !Platform::elapsed(now, m_stateStartTime, GAME_OVER_TWEEN_MS));
 
     if (hasInput || isEffectActive || isStateChanging) {
         dirty = true;
@@ -440,11 +439,11 @@ bool NeonReversi::onDraw(Graphics& graphics, bool requestFullRedraw)
     }
 
     if (m_shakeIntensity > 0) {
-        int16_t sx = (rand() % (m_shakeIntensity * 2 + 1)) - m_shakeIntensity;
-        int16_t sy = (rand() % (m_shakeIntensity * 2 + 1)) - m_shakeIntensity;
+        const int16_t sx = static_cast<int16_t>(Math::random(-m_shakeIntensity, m_shakeIntensity + 1));
+        const int16_t sy = static_cast<int16_t>(Math::random(-m_shakeIntensity, m_shakeIntensity + 1));
         graphics.setViewport(sx, sy);
     } else {
-        graphics.setViewport(0, 0);
+        graphics.resetViewport();
     }
 
     graphics.fillScreen(Graphics::BLACK);
@@ -469,29 +468,38 @@ bool NeonReversi::onDraw(Graphics& graphics, bool requestFullRedraw)
         drawEffects(graphics);
 
         if (m_mode == MODE_PASS) {
+            graphics.fillRectAlpha(0, 0, 320, 240, 80, Graphics::BLACK);
             graphics.fillRect(50, 100, 140, 40, Graphics::rgb565(20, 10, 10));
             graphics.drawRect(50, 100, 140, 40, Graphics::Color::WHITE);
             graphics.drawString("PASS", 120, 120, Graphics::Color::WHITE, Graphics::Font::SIZE_32B, Graphics::HorizontalAlign::CENTER, Graphics::VerticalAlign::MIDDLE);
         }
 
         if (m_mode == MODE_GAME_OVER) {
-            graphics.fillRect(20, 80, 280, 80, Graphics::rgb565(10, 10, 20));
-            graphics.drawRect(20, 80, 280, 80, Graphics::YELLOW);
+            const uint32_t now = Platform::getMsec();
+            const float t = Math::clamp(
+                static_cast<float>(now - m_stateStartTime) / static_cast<float>(GAME_OVER_TWEEN_MS),
+                0.0f, 1.0f);
+            const float eased = Tween::apply(t, Tween::Ease::EASE_OUT_BACK);
+            const int16_t panelY = static_cast<int16_t>(Tween::lerp(-80.0f, 80.0f, eased));
+
+            graphics.fillRectAlpha(0, 0, 320, 240, 96, Graphics::BLACK);
+            graphics.fillRect(20, panelY, 280, 80, Graphics::rgb565(10, 10, 20));
+            graphics.drawRect(20, panelY, 280, 80, Graphics::YELLOW);
 
             char hsBuf[32];
             snprintf(hsBuf, sizeof(hsBuf), "%02d", m_playerScore);
-            graphics.drawString(hsBuf, 40, 120, PLAYER_COLOR, Graphics::Font::SIZE_32B, Graphics::HorizontalAlign::LEFT, Graphics::VerticalAlign::MIDDLE);
+            graphics.drawString(hsBuf, 40, panelY + 40, PLAYER_COLOR, Graphics::Font::SIZE_32B, Graphics::HorizontalAlign::LEFT, Graphics::VerticalAlign::MIDDLE);
             snprintf(hsBuf, sizeof(hsBuf), "%02d", m_cpuScore);
-            graphics.drawString(hsBuf, 280, 120, CPU_COLOR, Graphics::Font::SIZE_32B, Graphics::HorizontalAlign::RIGHT, Graphics::VerticalAlign::MIDDLE);
+            graphics.drawString(hsBuf, 280, panelY + 40, CPU_COLOR, Graphics::Font::SIZE_32B, Graphics::HorizontalAlign::RIGHT, Graphics::VerticalAlign::MIDDLE);
 
-             if (m_playerScore > m_cpuScore) {
-                graphics.drawString("YOU WIN", 160, 105, Graphics::YELLOW, Graphics::Font::SIZE_25B, Graphics::HorizontalAlign::CENTER, Graphics::VerticalAlign::MIDDLE);
+            if (m_playerScore > m_cpuScore) {
+                graphics.drawString("YOU WIN", 160, panelY + 25, Graphics::YELLOW, Graphics::Font::SIZE_25B, Graphics::HorizontalAlign::CENTER, Graphics::VerticalAlign::MIDDLE);
             } else if (m_playerScore < m_cpuScore) {
-                graphics.drawString("YOU LOSE", 160, 105, Graphics::BLUE, Graphics::Font::SIZE_25B, Graphics::HorizontalAlign::CENTER, Graphics::VerticalAlign::MIDDLE);
+                graphics.drawString("YOU LOSE", 160, panelY + 25, Graphics::BLUE, Graphics::Font::SIZE_25B, Graphics::HorizontalAlign::CENTER, Graphics::VerticalAlign::MIDDLE);
             } else {
-                graphics.drawString("DRAW GAME", 160, 105, Graphics::Color::WHITE, Graphics::Font::SIZE_25B, Graphics::HorizontalAlign::CENTER, Graphics::VerticalAlign::MIDDLE);
+                graphics.drawString("DRAW GAME", 160, panelY + 25, Graphics::Color::WHITE, Graphics::Font::SIZE_25B, Graphics::HorizontalAlign::CENTER, Graphics::VerticalAlign::MIDDLE);
             }
-            graphics.drawString("A / START to TITLE", 160, 140, Graphics::Color::WHITE, Graphics::Font::SIZE_13, Graphics::HorizontalAlign::CENTER, Graphics::VerticalAlign::MIDDLE);
+            graphics.drawString("A / START to TITLE", 160, panelY + 60, Graphics::Color::WHITE, Graphics::Font::SIZE_13, Graphics::HorizontalAlign::CENTER, Graphics::VerticalAlign::MIDDLE);
         }
     }
 
@@ -609,8 +617,7 @@ void NeonReversi::loadHighScore(Storage& storage)
 void NeonReversi::saveHighScore(Storage& storage)
 {
     SaveData sd;
-    if (!sd.load(storage, getId(), "score.dat")) return;
-
+    sd.load(storage, getId(), "score.dat");
     sd.setInt32("high_score", m_highScore);
     sd.save(storage, getId(), "score.dat");
 }

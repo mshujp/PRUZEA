@@ -1,7 +1,5 @@
 #include "TinyStarfield.h"
 
-#include <cstdlib>
-
 using namespace PRUZEA;
 
 void TinyStarfield::onInit(Storage& storage)
@@ -101,8 +99,8 @@ void TinyStarfield::resetStar(
     Star& star,
     bool randomDepth)
 {
-    int16_t px = static_cast<int16_t>(rand() % SCREEN_W) - CENTER_X;
-    int16_t py = static_cast<int16_t>(rand() % SCREEN_H) - CENTER_Y;
+    int16_t px = static_cast<int16_t>(Math::random(SCREEN_W)) - CENTER_X;
+    int16_t py = static_cast<int16_t>(Math::random(SCREEN_H)) - CENTER_Y;
 
     if (px > -4 && px < 4)
     {
@@ -120,9 +118,7 @@ void TinyStarfield::resetStar(
     if (randomDepth)
     {
         star.z =
-            NEAR_Z +
-            static_cast<float>(rand() % 1000) / 1000.0f *
-            (FAR_Z - NEAR_Z);
+            Math::randomFloat(NEAR_Z, FAR_Z);
     }
     else
     {

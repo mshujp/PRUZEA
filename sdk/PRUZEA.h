@@ -48,6 +48,11 @@ namespace Math {
     float distance(float ax, float ay, float bx, float by);
     float distanceSquared(float ax, float ay, float bx, float by);
     float dot(float ax, float ay, float bx, float by);
+    float sqrt(float value);
+    float abs(float value);
+    float round(float value);
+    float floor(float value);
+    float ceil(float value);
     float wrap(float value, float min, float max);
     float sin(float radians);
     float cos(float radians);

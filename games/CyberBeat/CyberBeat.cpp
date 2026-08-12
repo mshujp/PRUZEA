@@ -1,7 +1,5 @@
 // CyberBeat.cpp
 #include "CyberBeat.h"
-#include <cmath>
-#include <cstdlib>
 #include <cstdio>
 
 namespace PRUZEA
@@ -80,7 +78,7 @@ void CyberBeat::spawnNote(uint32_t currentTime)
         if (!m_notes[i].active) {
             m_notes[i].active = true;
             m_notes[i].targetTime = currentTime + NOTE_TRAVEL_TIME;
-            m_notes[i].lane = rand() % 4; // 4 tactical lanes
+            m_notes[i].lane = Math::random(4); // 4 tactical lanes
             break;
         }
     }
@@ -170,7 +168,7 @@ Game::GameState CyberBeat::onUpdate(Input& input, Audio& audio, Storage& storage
             }
 
             // Procedural Note Generation
-            if (currentTime - m_lastSpawnTime >= NOTE_SPAWN_INTERVAL) {
+            if (Platform::elapsed(currentTime, m_lastSpawnTime, NOTE_SPAWN_INTERVAL)) {
                 spawnNote(currentTime);
                 m_lastSpawnTime = currentTime;
             }
@@ -236,23 +234,23 @@ bool CyberBeat::onDraw(Graphics& graphics, bool requestFullRedraw)
     uint32_t currentTime = Platform::getMsec();
     
     // Intense Viewport Shake on PERFECT Hits
-    if (m_mode == MODE_PLAYING && (currentTime - m_lastPerfectTime < 60)) {
-        int16_t shakeX = (rand() % 13) - 6;
-        int16_t shakeY = (rand() % 13) - 6;
+    if (m_mode == MODE_PLAYING && !Platform::elapsed(currentTime, m_lastPerfectTime, 60)) {
+        int16_t shakeX = Math::random(-6, 7);
+        int16_t shakeY = Math::random(-6, 7);
         graphics.setViewport(shakeX, shakeY);
     } else {
         graphics.setViewport(0, 0);
     }
 
     Graphics::Color bgColor = Graphics::rgb565(10, 14, 22);
-    if (m_mode == MODE_PLAYING && (currentTime - m_lastMissTime < 100)) {
+    if (m_mode == MODE_PLAYING && !Platform::elapsed(currentTime, m_lastMissTime, 100)) {
         bgColor = Graphics::rgb565(60, 10, 10); // Red flash overlay
     }
     graphics.fillScreen(bgColor);
 
     // Render Sci-Fi Pulse Grid
     Graphics::Color gridColor = Graphics::rgb565(20, 40, 60);
-    float beatPhase = sinf((currentTime * 0.001f) * (BEAT_BPM / 60.0f) * 2.0f * 3.14159f);
+    float beatPhase = Math::sin((currentTime * 0.001f) * (BEAT_BPM / 60.0f) * Math::TWO_PI);
     if (beatPhase > 0.0f) {
         gridColor = Graphics::rgb565(30, 60, 90);
     }
@@ -326,7 +324,7 @@ bool CyberBeat::onDraw(Graphics& graphics, bool requestFullRedraw)
         }
 
         // Tweened Judgment Pop-up Text Animation
-        if (m_judgeText && (currentTime - m_judgeTextTime < 400)) {
+        if (m_judgeText && !Platform::elapsed(currentTime, m_judgeTextTime, 400)) {
             float elapsed = (currentTime - m_judgeTextTime) / 400.0f;
             float scaleY = Tween::value(0.0f, 1.0f, elapsed, Tween::Ease::EASE_OUT_BACK);
             int16_t textY = 110 - static_cast<int16_t>(scaleY * 15.0f);

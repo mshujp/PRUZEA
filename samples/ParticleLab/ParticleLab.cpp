@@ -1,15 +1,12 @@
 #include "ParticleLab.h"
 
-#include <cmath>
 #include <cstdio>
-#include <cstdlib>
 #include <cstring>
 
 using namespace PRUZEA;
 
 namespace
 {
-constexpr float PI = 3.14159265358979323846f;
 constexpr uint32_t TITLE_BLINK_MSEC = 500;
 
 constexpr Graphics::Color COL_BG = Graphics::rgb565(5, 12, 22);
@@ -19,16 +16,6 @@ constexpr Graphics::Color COL_TEXT = Graphics::rgb565(222, 238, 239);
 constexpr Graphics::Color COL_DIM = Graphics::rgb565(118, 151, 160);
 constexpr Graphics::Color COL_ACCENT = Graphics::rgb565(77, 218, 190);
 constexpr Graphics::Color COL_HOT = Graphics::rgb565(255, 181, 61);
-
-float random01()
-{
-    return static_cast<float>(std::rand() % 10001) / 10000.0f;
-}
-
-float randomRange(float minimum, float maximum)
-{
-    return minimum + (maximum - minimum) * random01();
-}
 
 const char* effectName(ParticleLab::Effect effect)
 {
@@ -232,14 +219,14 @@ void ParticleLab::spawnExplosion()
         Particle* particle = acquireParticle();
         if (!particle) return;
 
-        const float angle = randomRange(0.0f, PI * 2.0f);
-        const float speed = randomRange(45.0f, 145.0f);
+        const float angle = Math::randomFloat(0.0f, Math::TWO_PI);
+        const float speed = Math::randomFloat(45.0f, 145.0f);
         particle->x = 160.0f;
         particle->y = 126.0f;
-        particle->vx = std::cos(angle) * speed;
-        particle->vy = std::sin(angle) * speed;
-        particle->life = particle->maxLife = randomRange(0.35f, 0.9f);
-        particle->size = randomRange(1.0f, 3.0f);
+        particle->vx = Math::cos(angle) * speed;
+        particle->vy = Math::sin(angle) * speed;
+        particle->life = particle->maxLife = Math::randomFloat(0.35f, 0.9f);
+        particle->size = Math::randomFloat(1.0f, 3.0f);
         particle->color = (i & 1) ? Graphics::YELLOW : Graphics::ORANGE;
     }
 }
@@ -251,13 +238,13 @@ void ParticleLab::spawnSmoke(uint8_t count)
         Particle* particle = acquireParticle();
         if (!particle) return;
 
-        particle->x = 160.0f + randomRange(-8.0f, 8.0f);
-        particle->y = 185.0f + randomRange(-3.0f, 3.0f);
-        particle->vx = randomRange(-10.0f, 10.0f);
-        particle->vy = randomRange(-34.0f, -18.0f);
-        particle->life = particle->maxLife = randomRange(1.2f, 2.2f);
-        particle->size = randomRange(2.0f, 4.0f);
-        particle->phase = randomRange(0.0f, PI * 2.0f);
+        particle->x = 160.0f + Math::randomFloat(-8.0f, 8.0f);
+        particle->y = 185.0f + Math::randomFloat(-3.0f, 3.0f);
+        particle->vx = Math::randomFloat(-10.0f, 10.0f);
+        particle->vy = Math::randomFloat(-34.0f, -18.0f);
+        particle->life = particle->maxLife = Math::randomFloat(1.2f, 2.2f);
+        particle->size = Math::randomFloat(2.0f, 4.0f);
+        particle->phase = Math::randomFloat(0.0f, Math::TWO_PI);
         particle->color = Graphics::rgb565(140, 155, 164);
     }
 }
@@ -269,12 +256,12 @@ void ParticleLab::spawnFountain(uint8_t count)
         Particle* particle = acquireParticle();
         if (!particle) return;
 
-        particle->x = 160.0f + randomRange(-3.0f, 3.0f);
+        particle->x = 160.0f + Math::randomFloat(-3.0f, 3.0f);
         particle->y = 190.0f;
-        particle->vx = randomRange(-48.0f, 48.0f);
-        particle->vy = randomRange(-155.0f, -95.0f);
-        particle->life = particle->maxLife = randomRange(1.1f, 1.7f);
-        particle->size = randomRange(1.0f, 2.5f);
+        particle->vx = Math::randomFloat(-48.0f, 48.0f);
+        particle->vy = Math::randomFloat(-155.0f, -95.0f);
+        particle->life = particle->maxLife = Math::randomFloat(1.1f, 1.7f);
+        particle->size = Math::randomFloat(1.0f, 2.5f);
         particle->color = Graphics::rgb565(91, 209, 255);
     }
 }
@@ -286,13 +273,13 @@ void ParticleLab::spawnSnow(uint8_t count)
         Particle* particle = acquireParticle();
         if (!particle) return;
 
-        particle->x = randomRange(8.0f, 312.0f);
-        particle->y = randomRange(36.0f, 72.0f);
-        particle->vx = randomRange(-5.0f, 5.0f);
-        particle->vy = randomRange(18.0f, 38.0f);
-        particle->life = particle->maxLife = randomRange(3.8f, 6.5f);
-        particle->size = randomRange(1.0f, 2.5f);
-        particle->phase = randomRange(0.0f, PI * 2.0f);
+        particle->x = Math::randomFloat(8.0f, 312.0f);
+        particle->y = Math::randomFloat(36.0f, 72.0f);
+        particle->vx = Math::randomFloat(-5.0f, 5.0f);
+        particle->vy = Math::randomFloat(18.0f, 38.0f);
+        particle->life = particle->maxLife = Math::randomFloat(3.8f, 6.5f);
+        particle->size = Math::randomFloat(1.0f, 2.5f);
+        particle->phase = Math::randomFloat(0.0f, Math::TWO_PI);
         particle->color = Graphics::WHITE;
     }
 }
@@ -308,7 +295,7 @@ void ParticleLab::updateExplosion(Particle& particle, float deltaSec)
 void ParticleLab::updateSmoke(Particle& particle, float deltaSec)
 {
     particle.phase += deltaSec * 2.5f;
-    particle.x += (particle.vx + std::sin(particle.phase) * 8.0f) * deltaSec;
+    particle.x += (particle.vx + Math::sin(particle.phase) * 8.0f) * deltaSec;
     particle.y += particle.vy * deltaSec;
     particle.size += deltaSec * 2.0f;
 }
@@ -324,7 +311,7 @@ void ParticleLab::updateFountain(Particle& particle, float deltaSec)
 void ParticleLab::updateSnow(Particle& particle, float deltaSec)
 {
     particle.phase += deltaSec * 2.0f;
-    particle.x += (particle.vx + std::sin(particle.phase) * 11.0f) * deltaSec;
+    particle.x += (particle.vx + Math::sin(particle.phase) * 11.0f) * deltaSec;
     particle.y += particle.vy * deltaSec;
     if (particle.y > 218.0f) particle.active = false;
 }

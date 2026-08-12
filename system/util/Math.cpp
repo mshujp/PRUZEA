@@ -95,6 +95,16 @@ float dot(float ax, float ay, float bx, float by)
     return ax * bx + ay * by;
 }
 
+float sqrt(float value)
+{
+    return sqrtf(value);
+}
+
+float abs(float value)
+{
+    return fabsf(value);
+}
+
 float wrap(float value, float min, float max)
 {
     float range = max - min;
@@ -106,6 +116,21 @@ float wrap(float value, float min, float max)
         val += range;
     }
     return val + min;
+}
+
+float round(float value)
+{
+    return roundf(value);
+}
+
+float floor(float value)
+{
+    return floorf(value);
+}
+
+float ceil(float value)
+{
+    return ceilf(value);
 }
 
 float sin(float radians)
