@@ -11,7 +11,7 @@ constexpr int16_t SCREEN_H = 240;
 constexpr int16_t FIELD_X = 60;
 constexpr int16_t FIELD_W = 200;
 constexpr int16_t FIELD_RIGHT = FIELD_X + FIELD_W - 1;
-constexpr int16_t SAFE_UI_BOTTOM = 224;
+constexpr int16_t SAFE_UI_BOTTOM = 240;
 
 constexpr float PLAYER_SPEED = 145.0f;
 constexpr float PLAYER_FOCUS_SPEED = 78.0f;
@@ -1056,8 +1056,8 @@ bool GroundFront::onDraw(Graphics& graphics, bool requestFullRedraw) {
     }
 
     if (now < flashUntilMsec_) {
-        graphics.drawRect(FIELD_X, 0, FIELD_W, 224, COLOR_WARNING);
-        graphics.drawRect(FIELD_X + 1, 1, FIELD_W - 2, 222, COLOR_WARNING);
+        graphics.drawRect(FIELD_X, 0, FIELD_W, 240, COLOR_WARNING);
+        graphics.drawRect(FIELD_X + 1, 1, FIELD_W - 2, 238, COLOR_WARNING);
     }
     // Viewport is applied later by Graphics::push().
     // Keep the shake offset until push() completes; the next frame updates
@@ -1181,9 +1181,12 @@ void GroundFront::drawPlayer(Graphics& graphics, uint64_t now) {
 
     // Compact double-delta silhouette. The visual size stays close to the
     // original craft so the small PLAYER_RADIUS remains easy to read.
-    graphics.fillTriangle(x, y - 10, x - 2, y + 7, x + 2, y + 7, COLOR_TEXT);
-    graphics.fillTriangle(x, y - 7, x - 5, y + 2, x + 5, y + 2, COLOR_ACCENT);
-    graphics.fillTriangle(x, y - 2, x - 8, y + 8, x + 8, y + 8, COLOR_PLAYER);
+//    graphics.fillTriangle(x, y - 2, x - 8, y + 8, x + 8, y + 8, COLOR_PLAYER);
+//    graphics.fillTriangle(x, y - 10, x - 2, y + 7, x + 2, y + 7, COLOR_TEXT);
+//    graphics.fillTriangle(x, y - 7, x - 5, y + 2, x + 5, y + 2, COLOR_ACCENT);
+    graphics.fillTriangle(x, y - 2, x - 8, y + 7, x + 8, y + 7, COLOR_PLAYER);
+    graphics.fillTriangle(x, y - 10, x - 2, y + 8, x + 2, y + 8, COLOR_PLAYER);
+    graphics.drawTriangle(x, y - 11, x - 3, y + 9, x + 3, y + 9, Graphics::GRAY);
 }
 
 void GroundFront::drawEnemies(Graphics& graphics, uint64_t now) {
