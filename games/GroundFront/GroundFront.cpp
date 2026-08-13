@@ -770,14 +770,15 @@ void GroundFront::updateBoss(Audio& audio, Storage& storage, uint64_t now) {
             break;
 
         case 3: {
-            const uint8_t safeLane = static_cast<uint8_t>(boss_.phase % 7u);
-            for (uint8_t lane = 0; lane < 7; ++lane) {
+            const uint8_t safeLane = static_cast<uint8_t>(boss_.phase % 6u);
+
+            for (uint8_t lane = 0; lane < 6; ++lane) {
                 if (lane == safeLane) continue;
-                const float x = FIELD_X + 16.0f + lane * 28.0f;
+                const float x = FIELD_X + 18.0f + lane * 32.8f;
                 addEnemyBullet(x, boss_.y + 10.0f, 0.0f, 64.0f * BOSS_BULLET_SPEED_RATE, 2);
             }
             if ((boss_.phase & 1u) != 0) {
-                fireEnemyFan(boss_.x, boss_.y + 15.0f, 3, 70.0f * BOSS_BULLET_SPEED_RATE, 0.18f, 2);
+                fireEnemyAimed(boss_.x, boss_.y + 15.0f, 70.0f * BOSS_BULLET_SPEED_RATE);
             }
             ++boss_.phase;
             break;
@@ -934,7 +935,7 @@ void GroundFront::useBomb(Audio& audio, uint64_t now) {
         }
     }
     if (boss_.active) {
-        boss_.hp -= 8;
+        boss_.hp -= 30;
         addExplosion(boss_.x, boss_.y, 8, now);
     }
     audio.playSE(&Audio::SE::NO_11, 0.85f);
@@ -1166,10 +1167,10 @@ void GroundFront::drawSidePanels(Graphics& graphics, uint64_t now) {
 }
 
 void GroundFront::drawPlayfield(Graphics& graphics, uint64_t now) {
+    drawItems(graphics, now);
     drawBullets(graphics);
     drawEnemies(graphics, now);
     drawBoss(graphics, now);
-    drawItems(graphics, now);
     drawPlayer(graphics, now);
     drawParticles(graphics, now);
 }
@@ -1373,8 +1374,8 @@ void GroundFront::drawItems(Graphics& graphics, uint64_t now) {
 
 void GroundFront::drawPause(Graphics& graphics) {
     graphics.fillRectAlpha(FIELD_X, 0, FIELD_W, SAFE_UI_BOTTOM, 120, COLOR_OVERLAY);
-    graphics.fillRect(82, 88, 156, 60, COLOR_PANEL);
-    graphics.drawRect(82, 88, 156, 60, 2, COLOR_ACCENT);
+    graphics.fillRect(68, 88, 184, 60, COLOR_PANEL);
+    graphics.drawRect(68, 88, 184, 60, 2, COLOR_ACCENT);
     graphics.drawString("PAUSED", 160, 108, COLOR_TEXT, Graphics::SIZE_25B,
         Graphics::HorizontalAlign::CENTER, Graphics::VerticalAlign::MIDDLE);
     graphics.drawString("START : RESUME", 160, 136, COLOR_ACCENT, Graphics::SIZE_18,
