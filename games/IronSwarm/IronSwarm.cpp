@@ -885,7 +885,7 @@ void IronSwarm::updateBullets(Audio& audio, float deltaSec)
                         : Graphics::rgb565(190, 76, 56);
                     spawnDeathParticles(
                         deathPosition, particleColor,
-                        type == ENEMY_HEAVY ? 6 : 4);
+                        type == ENEMY_HEAVY ? 12 : 8);
 
                     score += type == ENEMY_HEAVY ? 250 :
                              type == ENEMY_GUNNER ? 160 : 100;
@@ -1051,9 +1051,9 @@ void IronSwarm::spawnDeathParticles(
         Particle& p = particles[slot];
         p.position = position;
         p.velocity = Vector2(Math::cos(angle), Math::sin(angle)) * speed;
-        p.maxLife = Math::randomFloat(0.20f, 0.38f);
+        p.maxLife = Math::randomFloat(0.28f, 0.55f);
         p.life = p.maxLife;
-        p.size = static_cast<uint8_t>(Math::random(1, 3));
+        p.size = static_cast<uint8_t>(Math::random(2, 4));
         p.color = color;
         p.active = true;
     }
