@@ -381,6 +381,11 @@ public:
     virtual void fillRectGradient(int16_t x, int16_t y, uint16_t w, uint16_t h, Color color0, Color color1, FillStyle style) = 0;
     virtual void fillRectGradient(int16_t x, int16_t y, uint16_t w, uint16_t h, Color color0, Color color1, FillStyle style, HorizontalAlign ha, VerticalAlign va) = 0;
   
+    // Draws a quadratic Bezier curve using three control points.
+    virtual void drawBezier(int16_t x0, int16_t y0, int16_t x1, int16_t y1, int16_t x2, int16_t y2, Color color) = 0;
+    // Draws a cubic Bezier curve using four control points.
+    virtual void drawBezier(int16_t x0, int16_t y0, int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3, Color color) = 0;
+
     // [!IMPORTANT] AI WARNING:
     //   Use only the enum values defined below.
     //   Never invent or guess font names.
