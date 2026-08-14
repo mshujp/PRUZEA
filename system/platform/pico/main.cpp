@@ -49,6 +49,11 @@ using namespace PRUZEA;
 namespace
 {
 
+#if PICO_RP2350
+constexpr size_t AUDIO_CORE_STACK_SIZE = 4 * 1024;
+alignas(8) uint32_t audioCoreStack[AUDIO_CORE_STACK_SIZE / sizeof(uint32_t)];
+#endif
+
 #if PRUZEA_DISPLAY_ILI9341
 GraphicsILI9341 graphicsImpl(GRAPHICS_CONFIG);
 SystemUI320x240 systemUIImpl;
@@ -139,7 +144,11 @@ void __time_critical_func(audioCoreEntry)()
 bool launchAudioWorker(void*, System& system)
 {
     activeSystem = &system;
+#if PICO_RP2350
+    multicore_launch_core1_with_stack(audioCoreEntry, audioCoreStack, sizeof(audioCoreStack));
+#else
     multicore_launch_core1(audioCoreEntry);
+#endif
     return true;
 }
 
