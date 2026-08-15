@@ -49,152 +49,297 @@ static const Audio::Sound START_GO = {
 
 // An original mountain road: fast lower section, switchback-heavy middle,
 // then a narrower-feeling summit run. START is at the bottom.
-static const Audio::SoundStep ENGINE_STEP_0[] = {
-    {67, 67, 90, 0.80f, 0.72f},
-    {67, 134, 28, 0.72f, 0.46f},
-    {134, 67, 28, 0.46f, 0.72f},
-    {67, 67, 94, 0.72f, 0.80f}
+static const Audio::SoundStep MOTOR_STEP_0[] = {
+    {94, 97, 92, 0.62f, 0.72f},
+    {97, 94, 92, 0.72f, 0.62f}
 };
+
 static const Audio::Sound ENGINE_SOUND_0 = {
-    ENGINE_STEP_0, 4
+    MOTOR_STEP_0, 2
 };
-static const Audio::SoundStep ENGINE_STEP_1[] = {
-    {91, 91, 90, 0.80f, 0.72f},
-    {91, 182, 28, 0.72f, 0.46f},
-    {182, 91, 28, 0.46f, 0.72f},
-    {91, 91, 94, 0.72f, 0.80f}
+
+static const Audio::SoundStep MOTOR_STEP_1[] = {
+    {100, 104, 92, 0.62f, 0.72f},
+    {104, 100, 92, 0.72f, 0.62f}
 };
+
 static const Audio::Sound ENGINE_SOUND_1 = {
-    ENGINE_STEP_1, 4
+    MOTOR_STEP_1, 2
 };
-static const Audio::SoundStep ENGINE_STEP_2[] = {
-    {116, 116, 90, 0.80f, 0.72f},
-    {116, 232, 28, 0.72f, 0.46f},
-    {232, 116, 28, 0.46f, 0.72f},
-    {116, 116, 94, 0.72f, 0.80f}
+
+static const Audio::SoundStep MOTOR_STEP_2[] = {
+    {108, 112, 92, 0.62f, 0.72f},
+    {112, 108, 92, 0.72f, 0.62f}
 };
+
 static const Audio::Sound ENGINE_SOUND_2 = {
-    ENGINE_STEP_2, 4
+    MOTOR_STEP_2, 2
 };
-static const Audio::SoundStep ENGINE_STEP_3[] = {
-    {140, 140, 90, 0.80f, 0.72f},
-    {140, 280, 28, 0.72f, 0.46f},
-    {280, 140, 28, 0.46f, 0.72f},
-    {140, 140, 94, 0.72f, 0.80f}
+
+static const Audio::SoundStep MOTOR_STEP_3[] = {
+    {117, 121, 92, 0.62f, 0.72f},
+    {121, 117, 92, 0.72f, 0.62f}
 };
+
 static const Audio::Sound ENGINE_SOUND_3 = {
-    ENGINE_STEP_3, 4
+    MOTOR_STEP_3, 2
 };
-static const Audio::SoundStep ENGINE_STEP_4[] = {
-    {165, 165, 90, 0.80f, 0.72f},
-    {165, 330, 28, 0.72f, 0.46f},
-    {330, 165, 28, 0.46f, 0.72f},
-    {165, 165, 94, 0.72f, 0.80f}
+
+static const Audio::SoundStep MOTOR_STEP_4[] = {
+    {126, 130, 92, 0.62f, 0.72f},
+    {130, 126, 92, 0.72f, 0.62f}
 };
+
 static const Audio::Sound ENGINE_SOUND_4 = {
-    ENGINE_STEP_4, 4
+    MOTOR_STEP_4, 2
 };
-static const Audio::SoundStep ENGINE_STEP_5[] = {
-    {189, 189, 90, 0.80f, 0.72f},
-    {189, 378, 28, 0.72f, 0.46f},
-    {378, 189, 28, 0.46f, 0.72f},
-    {189, 189, 94, 0.72f, 0.80f}
+
+static const Audio::SoundStep MOTOR_STEP_5[] = {
+    {136, 140, 92, 0.62f, 0.72f},
+    {140, 136, 92, 0.72f, 0.62f}
 };
+
 static const Audio::Sound ENGINE_SOUND_5 = {
-    ENGINE_STEP_5, 4
+    MOTOR_STEP_5, 2
 };
-static const Audio::SoundStep ENGINE_STEP_6[] = {
-    {213, 213, 90, 0.80f, 0.72f},
-    {213, 426, 28, 0.72f, 0.46f},
-    {426, 213, 28, 0.46f, 0.72f},
-    {213, 213, 94, 0.72f, 0.80f}
+
+static const Audio::SoundStep MOTOR_STEP_6[] = {
+    {147, 152, 92, 0.62f, 0.72f},
+    {152, 147, 92, 0.72f, 0.62f}
 };
+
 static const Audio::Sound ENGINE_SOUND_6 = {
-    ENGINE_STEP_6, 4
+    MOTOR_STEP_6, 2
 };
-static const Audio::SoundStep ENGINE_STEP_7[] = {
-    {238, 238, 90, 0.80f, 0.72f},
-    {238, 476, 28, 0.72f, 0.46f},
-    {476, 238, 28, 0.46f, 0.72f},
-    {238, 238, 94, 0.72f, 0.80f}
+
+static const Audio::SoundStep MOTOR_STEP_7[] = {
+    {159, 164, 92, 0.62f, 0.72f},
+    {164, 159, 92, 0.72f, 0.62f}
 };
+
 static const Audio::Sound ENGINE_SOUND_7 = {
-    ENGINE_STEP_7, 4
+    MOTOR_STEP_7, 2
 };
-static const Audio::SoundStep ENGINE_STEP_8[] = {
-    {262, 262, 90, 0.80f, 0.72f},
-    {262, 524, 28, 0.72f, 0.46f},
-    {524, 262, 28, 0.46f, 0.72f},
-    {262, 262, 94, 0.72f, 0.80f}
+
+static const Audio::SoundStep MOTOR_STEP_8[] = {
+    {170, 176, 92, 0.62f, 0.72f},
+    {176, 170, 92, 0.72f, 0.62f}
 };
+
 static const Audio::Sound ENGINE_SOUND_8 = {
-    ENGINE_STEP_8, 4
+    MOTOR_STEP_8, 2
 };
-static const Audio::SoundStep ENGINE_STEP_9[] = {
-    {287, 287, 90, 0.80f, 0.72f},
-    {287, 574, 28, 0.72f, 0.46f},
-    {574, 287, 28, 0.46f, 0.72f},
-    {287, 287, 94, 0.72f, 0.80f}
+
+static const Audio::SoundStep MOTOR_STEP_9[] = {
+    {184, 190, 92, 0.62f, 0.72f},
+    {190, 184, 92, 0.72f, 0.62f}
 };
+
 static const Audio::Sound ENGINE_SOUND_9 = {
-    ENGINE_STEP_9, 4
+    MOTOR_STEP_9, 2
 };
-static const Audio::SoundStep ENGINE_STEP_10[] = {
-    {311, 311, 90, 0.80f, 0.72f},
-    {311, 622, 28, 0.72f, 0.46f},
-    {622, 311, 28, 0.46f, 0.72f},
-    {311, 311, 94, 0.72f, 0.80f}
+
+static const Audio::SoundStep MOTOR_STEP_10[] = {
+    {199, 206, 92, 0.62f, 0.72f},
+    {206, 199, 92, 0.72f, 0.62f}
 };
+
 static const Audio::Sound ENGINE_SOUND_10 = {
-    ENGINE_STEP_10, 4
+    MOTOR_STEP_10, 2
 };
-static const Audio::SoundStep ENGINE_STEP_11[] = {
-    {335, 335, 90, 0.80f, 0.72f},
-    {335, 670, 28, 0.72f, 0.46f},
-    {670, 335, 28, 0.46f, 0.72f},
-    {335, 335, 94, 0.72f, 0.80f}
+
+static const Audio::SoundStep MOTOR_STEP_11[] = {
+    {214, 221, 92, 0.62f, 0.72f},
+    {221, 214, 92, 0.72f, 0.62f}
 };
+
 static const Audio::Sound ENGINE_SOUND_11 = {
-    ENGINE_STEP_11, 4
+    MOTOR_STEP_11, 2
 };
-static const Audio::SoundStep ENGINE_STEP_12[] = {
-    {360, 360, 90, 0.80f, 0.72f},
-    {360, 720, 28, 0.72f, 0.46f},
-    {720, 360, 28, 0.46f, 0.72f},
-    {360, 360, 94, 0.72f, 0.80f}
+
+static const Audio::SoundStep MOTOR_STEP_12[] = {
+    {230, 238, 92, 0.62f, 0.72f},
+    {238, 230, 92, 0.72f, 0.62f}
 };
+
 static const Audio::Sound ENGINE_SOUND_12 = {
-    ENGINE_STEP_12, 4
+    MOTOR_STEP_12, 2
 };
-static const Audio::SoundStep ENGINE_STEP_13[] = {
-    {384, 384, 90, 0.80f, 0.72f},
-    {384, 768, 28, 0.72f, 0.46f},
-    {768, 384, 28, 0.46f, 0.72f},
-    {384, 384, 94, 0.72f, 0.80f}
+
+static const Audio::SoundStep MOTOR_STEP_13[] = {
+    {249, 258, 92, 0.62f, 0.72f},
+    {258, 249, 92, 0.72f, 0.62f}
 };
+
 static const Audio::Sound ENGINE_SOUND_13 = {
-    ENGINE_STEP_13, 4
+    MOTOR_STEP_13, 2
 };
-static const Audio::SoundStep ENGINE_STEP_14[] = {
-    {409, 409, 90, 0.80f, 0.72f},
-    {409, 818, 28, 0.72f, 0.46f},
-    {818, 409, 28, 0.46f, 0.72f},
-    {409, 409, 94, 0.72f, 0.80f}
+
+static const Audio::SoundStep MOTOR_STEP_14[] = {
+    {269, 278, 92, 0.62f, 0.72f},
+    {278, 269, 92, 0.72f, 0.62f}
 };
+
 static const Audio::Sound ENGINE_SOUND_14 = {
-    ENGINE_STEP_14, 4
+    MOTOR_STEP_14, 2
 };
-static const Audio::SoundStep ENGINE_STEP_15[] = {
-    {433, 433, 90, 0.80f, 0.72f},
-    {433, 866, 28, 0.72f, 0.46f},
-    {866, 433, 28, 0.46f, 0.72f},
-    {433, 433, 94, 0.72f, 0.80f}
+
+static const Audio::SoundStep MOTOR_STEP_15[] = {
+    {290, 299, 92, 0.62f, 0.72f},
+    {299, 290, 92, 0.72f, 0.62f}
 };
+
 static const Audio::Sound ENGINE_SOUND_15 = {
-    ENGINE_STEP_15, 4
+    MOTOR_STEP_15, 2
 };
+
+static const Audio::SoundStep MOTOR_STEP_16[] = {
+    {312, 323, 92, 0.62f, 0.72f},
+    {323, 312, 92, 0.72f, 0.62f}
+};
+
+static const Audio::Sound ENGINE_SOUND_16 = {
+    MOTOR_STEP_16, 2
+};
+
+static const Audio::SoundStep MOTOR_STEP_17[] = {
+    {337, 348, 92, 0.62f, 0.72f},
+    {348, 337, 92, 0.72f, 0.62f}
+};
+
+static const Audio::Sound ENGINE_SOUND_17 = {
+    MOTOR_STEP_17, 2
+};
+
+static const Audio::SoundStep MOTOR_STEP_18[] = {
+    {362, 375, 92, 0.62f, 0.72f},
+    {375, 362, 92, 0.72f, 0.62f}
+};
+
+static const Audio::Sound ENGINE_SOUND_18 = {
+    MOTOR_STEP_18, 2
+};
+
+static const Audio::SoundStep MOTOR_STEP_19[] = {
+    {391, 404, 92, 0.62f, 0.72f},
+    {404, 391, 92, 0.72f, 0.62f}
+};
+
+static const Audio::Sound ENGINE_SOUND_19 = {
+    MOTOR_STEP_19, 2
+};
+
+static const Audio::SoundStep MOTOR_STEP_20[] = {
+    {422, 436, 92, 0.62f, 0.72f},
+    {436, 422, 92, 0.72f, 0.62f}
+};
+
+static const Audio::Sound ENGINE_SOUND_20 = {
+    MOTOR_STEP_20, 2
+};
+
+static const Audio::SoundStep MOTOR_STEP_21[] = {
+    {455, 470, 92, 0.62f, 0.72f},
+    {470, 455, 92, 0.72f, 0.62f}
+};
+
+static const Audio::Sound ENGINE_SOUND_21 = {
+    MOTOR_STEP_21, 2
+};
+
+static const Audio::SoundStep MOTOR_STEP_22[] = {
+    {491, 507, 92, 0.62f, 0.72f},
+    {507, 491, 92, 0.72f, 0.62f}
+};
+
+static const Audio::Sound ENGINE_SOUND_22 = {
+    MOTOR_STEP_22, 2
+};
+
+static const Audio::SoundStep MOTOR_STEP_23[] = {
+    {529, 547, 92, 0.62f, 0.72f},
+    {547, 529, 92, 0.72f, 0.62f}
+};
+
+static const Audio::Sound ENGINE_SOUND_23 = {
+    MOTOR_STEP_23, 2
+};
+
+static const Audio::SoundStep MOTOR_STEP_24[] = {
+    {570, 589, 92, 0.62f, 0.72f},
+    {589, 570, 92, 0.72f, 0.62f}
+};
+
+static const Audio::Sound ENGINE_SOUND_24 = {
+    MOTOR_STEP_24, 2
+};
+
+static const Audio::SoundStep MOTOR_STEP_25[] = {
+    {615, 635, 92, 0.62f, 0.72f},
+    {635, 615, 92, 0.72f, 0.62f}
+};
+
+static const Audio::Sound ENGINE_SOUND_25 = {
+    MOTOR_STEP_25, 2
+};
+
+static const Audio::SoundStep MOTOR_STEP_26[] = {
+    {663, 685, 92, 0.62f, 0.72f},
+    {685, 663, 92, 0.72f, 0.62f}
+};
+
+static const Audio::Sound ENGINE_SOUND_26 = {
+    MOTOR_STEP_26, 2
+};
+
+static const Audio::SoundStep MOTOR_STEP_27[] = {
+    {714, 738, 92, 0.62f, 0.72f},
+    {738, 714, 92, 0.72f, 0.62f}
+};
+
+static const Audio::Sound ENGINE_SOUND_27 = {
+    MOTOR_STEP_27, 2
+};
+
+static const Audio::SoundStep MOTOR_STEP_28[] = {
+    {770, 796, 92, 0.62f, 0.72f},
+    {796, 770, 92, 0.72f, 0.62f}
+};
+
+static const Audio::Sound ENGINE_SOUND_28 = {
+    MOTOR_STEP_28, 2
+};
+
+static const Audio::SoundStep MOTOR_STEP_29[] = {
+    {830, 858, 92, 0.62f, 0.72f},
+    {858, 830, 92, 0.72f, 0.62f}
+};
+
+static const Audio::Sound ENGINE_SOUND_29 = {
+    MOTOR_STEP_29, 2
+};
+
+static const Audio::SoundStep MOTOR_STEP_30[] = {
+    {895, 925, 92, 0.62f, 0.72f},
+    {925, 895, 92, 0.72f, 0.62f}
+};
+
+static const Audio::Sound ENGINE_SOUND_30 = {
+    MOTOR_STEP_30, 2
+};
+
+static const Audio::SoundStep MOTOR_STEP_31[] = {
+    {965, 998, 92, 0.62f, 0.72f},
+    {998, 965, 92, 0.72f, 0.62f}
+};
+
+static const Audio::Sound ENGINE_SOUND_31 = {
+    MOTOR_STEP_31, 2
+};
+
+
 static const Audio::Sound* ENGINE_SOUNDS[] = {
-    &ENGINE_SOUND_0, &ENGINE_SOUND_1, &ENGINE_SOUND_2, &ENGINE_SOUND_3, &ENGINE_SOUND_4, &ENGINE_SOUND_5, &ENGINE_SOUND_6, &ENGINE_SOUND_7, &ENGINE_SOUND_8, &ENGINE_SOUND_9, &ENGINE_SOUND_10, &ENGINE_SOUND_11, &ENGINE_SOUND_12, &ENGINE_SOUND_13, &ENGINE_SOUND_14, &ENGINE_SOUND_15
+    &ENGINE_SOUND_0, &ENGINE_SOUND_1, &ENGINE_SOUND_2, &ENGINE_SOUND_3, &ENGINE_SOUND_4, &ENGINE_SOUND_5, &ENGINE_SOUND_6, &ENGINE_SOUND_7, &ENGINE_SOUND_8, &ENGINE_SOUND_9, &ENGINE_SOUND_10, &ENGINE_SOUND_11, &ENGINE_SOUND_12, &ENGINE_SOUND_13, &ENGINE_SOUND_14, &ENGINE_SOUND_15, &ENGINE_SOUND_16, &ENGINE_SOUND_17, &ENGINE_SOUND_18, &ENGINE_SOUND_19, &ENGINE_SOUND_20, &ENGINE_SOUND_21, &ENGINE_SOUND_22, &ENGINE_SOUND_23, &ENGINE_SOUND_24, &ENGINE_SOUND_25, &ENGINE_SOUND_26, &ENGINE_SOUND_27, &ENGINE_SOUND_28, &ENGINE_SOUND_29, &ENGINE_SOUND_30, &ENGINE_SOUND_31
 };
 
 static const P COURSE_APEX[] = {
@@ -1303,25 +1448,20 @@ void ApexClimb::updateEngineAudio(Audio& audio, float deltaSec)
         index = Math::clamp(
             static_cast<int>(bandPosition + 0.5f), 0, count - 1);
     } else {
-        // Hysteresis keeps the engine from chattering between adjacent
-        // RPM bands near a boundary.
         index = engineSoundIndex;
         while (index < count - 1 &&
-               bandPosition > static_cast<float>(index) + 0.65f) {
+               bandPosition > static_cast<float>(index) + 0.58f) {
             ++index;
         }
         while (index > 0 &&
-               bandPosition < static_cast<float>(index) - 0.65f) {
+               bandPosition < static_cast<float>(index) - 0.58f) {
             --index;
         }
     }
 
     engineSoundElapsed += deltaSec;
 
-    // Each band is a short four-step engine texture (~240 ms).
-    // AudioBase preserves oscillator phase when replacing an active SE,
-    // so renewing it before the end keeps the sound continuous.
-    static constexpr float ENGINE_SOUND_RENEW_SEC = 0.16f;
+    static constexpr float ENGINE_SOUND_RENEW_SEC = 0.115f;
     if (index == engineSoundIndex &&
         engineSoundElapsed < ENGINE_SOUND_RENEW_SEC) {
         return;
