@@ -55,8 +55,10 @@ private:
     bool ensureDirectory(const char* path);
     bool makeFatPath(const char* path, char* outBuffer, size_t bufferSize) const;
     bool getDataDir(char* outBuffer, uint16_t bufferSize, const char* gameId);
+    bool deleteDirectoryRecursive(const char* fatPath);
     static bool isValidUserFileName(const char* fileName);
     StorageBaseFile* openWrite(const char* gameId, const char* fileName) override;
+    bool onDeleteGameData(const char* gameId) override;
 
 public:
     struct Config {

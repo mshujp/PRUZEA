@@ -17,6 +17,8 @@ protected:
     void drawSelect(Graphics& graphics) override;
     void drawInfo(Graphics& graphics) override;
     void drawShutdownConfirm(Graphics& graphics) override;
+    bool supportsGameDataDelete() const override { return true; }
+    void drawDeleteGameDataConfirm(Graphics& graphics) override;
 
 public:
     static constexpr uint16_t SCREEEN_WIDTH = 320;

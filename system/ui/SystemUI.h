@@ -15,6 +15,7 @@ public:
         MODE_SELECT,
         MODE_INFO,
         MODE_SHUTDOWN_CONFIRM,
+        MODE_DELETE_GAME_DATA_CONFIRM,
         MODE_TERMINATED
     };
 
@@ -29,6 +30,7 @@ public:
     };
 
     using GetSystemInfoHandler = void(*)(SystemInfo& info, void* context);
+    using DeleteGameDataHandler = bool(*)(const char* gameId, void* context);
 
 protected:
     GameCatalog* catalog = nullptr;
@@ -45,11 +47,14 @@ protected:
     bool storageAvailable = false;
     bool uiDirty = true;
     bool shutdownYesSelected = false;
+    bool deleteGameDataYesSelected = false;
 
     mutable char slotNameBuffer[64] = {};
 
     GetSystemInfoHandler getSystemInfoHandler = nullptr;
     void* getSystemInfoContext = nullptr;
+    DeleteGameDataHandler deleteGameDataHandler = nullptr;
+    void* deleteGameDataContext = nullptr;
 
     virtual uint16_t getItemsPerPage() const = 0;
 
@@ -57,6 +62,9 @@ protected:
     virtual void drawSelect(Graphics& graphics) = 0;
     virtual void drawInfo(Graphics& graphics) = 0;
     virtual void drawShutdownConfirm(Graphics& graphics) = 0;
+
+    virtual bool supportsGameDataDelete() const { return false; }
+    virtual void drawDeleteGameDataConfirm(Graphics& graphics) { (void)graphics; }
 
     void moveSelection(int8_t dy);
     void movePage(int8_t direction);
@@ -80,6 +88,7 @@ public:
 
     void setCatalog(GameCatalog* catalog);
     void setSystemInfoHandler(GetSystemInfoHandler infoHandler, void* infoContext);
+    void setDeleteGameDataHandler(DeleteGameDataHandler handler, void* context);
     Game* takeSelectedGame();
 
     Mode getMode() const;

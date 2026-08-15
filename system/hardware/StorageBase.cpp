@@ -39,6 +39,15 @@ bool StorageBase::userFileExists(const char* gameId, const char* fileName)
     return exists;
 }
 
+bool StorageBase::deleteGameData(const char* gameId)
+{
+    if (!isAvailable() || !isValidGameId(gameId)) return false;
+
+    const bool result = onDeleteGameData(gameId);
+    if (result) CoreRing::notifyStorageWrite();
+    return result;
+}
+
 bool StorageBase::writeBinaryFile(const char* gameId, const char* fileName, BinaryFileWriterHandler writer, void* arg)
 {
     if (!isAvailable() || !isValidGameId(gameId) || fileName == nullptr || fileName[0] == '\0' || writer == nullptr)

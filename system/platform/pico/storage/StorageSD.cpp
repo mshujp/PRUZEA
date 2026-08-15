@@ -418,6 +418,78 @@ bool StorageSD::getDataDir(char* outBuffer, uint16_t bufferSize, const char* gam
     return ensureDirectory(outBuffer);
 }
 
+bool StorageSD::deleteDirectoryRecursive(const char* fatPath)
+{
+    DIR directory = {};
+    if (f_opendir(&directory, fatPath) != FR_OK) return false;
+
+    bool result = true;
+    while (result)
+    {
+        FILINFO info = {};
+        if (f_readdir(&directory, &info) != FR_OK)
+        {
+            result = false;
+            break;
+        }
+
+        if (info.fname[0] == '\0') break;
+        if (std::strcmp(info.fname, ".") == 0 || std::strcmp(info.fname, "..") == 0) continue;
+
+        char childPath[FAT_PATH_MAX];
+        const int written = snprintf(childPath, sizeof(childPath), "%s/%s", fatPath, info.fname);
+        if (written < 0 || written >= static_cast<int>(sizeof(childPath)))
+        {
+            result = false;
+            break;
+        }
+
+        result = (info.fattrib & AM_DIR) != 0
+            ? deleteDirectoryRecursive(childPath)
+            : f_unlink(childPath) == FR_OK;
+    }
+
+    if (f_closedir(&directory) != FR_OK) result = false;
+    if (!result) return false;
+    return f_unlink(fatPath) == FR_OK;
+}
+
+bool StorageSD::onDeleteGameData(const char* gameId)
+{
+    fileSlot.close();
+    if (!mountCard()) return false;
+
+    char path[FAT_PATH_MAX];
+    const int written = snprintf(path, sizeof(path), "%s/%s", ROOT_DIR, gameId);
+
+    char fatPath[FAT_PATH_MAX];
+    bool result = written >= 0 &&
+        written < static_cast<int>(sizeof(path)) &&
+        makeFatPath(path, fatPath, sizeof(fatPath));
+
+    if (result)
+    {
+        FILINFO info = {};
+        const FRESULT statResult = f_stat(fatPath, &info);
+
+        if (statResult == FR_NO_FILE || statResult == FR_NO_PATH)
+        {
+            result = true;
+        }
+        else if (statResult != FR_OK || (info.fattrib & AM_DIR) == 0)
+        {
+            result = false;
+        }
+        else
+        {
+            result = deleteDirectoryRecursive(fatPath);
+        }
+    }
+
+    unmountCard();
+    return result;
+}
+
 StorageBaseFile* StorageSD::openWrite(const char* gameId, const char* fileName)
 {
     if (!isValidUserFileName(fileName)) return nullptr;

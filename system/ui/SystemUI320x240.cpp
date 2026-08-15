@@ -309,6 +309,95 @@ void SystemUI320x240::drawShutdownConfirm(Graphics& graphics)
         Graphics::Font::SIZE_13);
 }
 
+void SystemUI320x240::drawDeleteGameDataConfirm(Graphics& graphics)
+{
+    CoreRing::setMode(CoreRing::MODE_IDLE);
+
+    drawBackground(graphics);
+    drawTopBar(graphics);
+
+    constexpr int panelX = 34;
+    constexpr int panelY = 54;
+    constexpr int panelW = 252;
+    constexpr int panelH = 132;
+
+    graphics.fillRoundRect(panelX, panelY, panelW, panelH, 8, COL_PANEL_DARK);
+    graphics.drawRoundRect(panelX, panelY, panelW, panelH, 8, 2, COL_ACCENT);
+
+    drawTextCenterShadow(
+        graphics,
+        "DELETE GAME DATA?",
+        SCREEN_W / 2,
+        78,
+        COL_TEXT,
+        Graphics::Font::SIZE_22B);
+
+    drawTextCenterShadow(
+        graphics,
+        getSlotName(selectedIndex),
+        SCREEN_W / 2,
+        108,
+        COL_MUTED,
+        Graphics::Font::SIZE_13);
+
+    constexpr int buttonY = 139;
+    constexpr int buttonW = 82;
+    constexpr int buttonH = 30;
+    constexpr int yesX = 67;
+    constexpr int noX = 171;
+
+    const Graphics::Color yesFill = deleteGameDataYesSelected
+        ? Graphics::rgb565(28, 92, 126)
+        : COL_PANEL;
+    const Graphics::Color noFill = deleteGameDataYesSelected
+        ? COL_PANEL
+        : Graphics::rgb565(28, 92, 126);
+
+    graphics.fillRoundRect(yesX, buttonY, buttonW, buttonH, 5, yesFill);
+    graphics.drawRoundRect(
+        yesX,
+        buttonY,
+        buttonW,
+        buttonH,
+        5,
+        deleteGameDataYesSelected ? 2 : 1,
+        deleteGameDataYesSelected ? COL_ACCENT : COL_LINE);
+
+    graphics.fillRoundRect(noX, buttonY, buttonW, buttonH, 5, noFill);
+    graphics.drawRoundRect(
+        noX,
+        buttonY,
+        buttonW,
+        buttonH,
+        5,
+        deleteGameDataYesSelected ? 1 : 2,
+        deleteGameDataYesSelected ? COL_LINE : COL_ACCENT);
+
+    drawTextCenterShadow(
+        graphics,
+        "YES",
+        yesX + buttonW / 2,
+        buttonY + buttonH / 2,
+        deleteGameDataYesSelected ? COL_TEXT : COL_MUTED,
+        Graphics::Font::SIZE_18);
+
+    drawTextCenterShadow(
+        graphics,
+        "NO",
+        noX + buttonW / 2,
+        buttonY + buttonH / 2,
+        deleteGameDataYesSelected ? COL_MUTED : COL_TEXT,
+        Graphics::Font::SIZE_18);
+
+    drawTextCenterShadow(
+        graphics,
+        "A: OK    B: CANCEL",
+        SCREEN_W / 2,
+        204,
+        COL_MUTED,
+        Graphics::Font::SIZE_13);
+}
+
 void SystemUI320x240::drawPowerOffReady(Graphics& graphics)
 {
     graphics.fillScreen(Graphics::Color::BLACK);

@@ -98,6 +98,7 @@ bool System::initialize()
     registerGeneratedGames(gameCatalog, graphics);
     systemUI.setCatalog(&gameCatalog);
     systemUI.setSystemInfoHandler(&System::getSystemInfoHandler, this);
+    systemUI.setDeleteGameDataHandler(&System::deleteGameDataHandler, this);
 
     if (graphicsAvailable && inputAvailable)
     {
@@ -594,4 +595,10 @@ void System::getSystemInfoHandler(SystemUI::SystemInfo& info, void* context)
     {
         snprintf(info.battery, sizeof(info.battery), "%s", "---");
     }
+}
+
+bool System::deleteGameDataHandler(const char* gameId, void* context)
+{
+    System* system = static_cast<System*>(context);
+    return system != nullptr && system->storage.deleteGameData(gameId);
 }

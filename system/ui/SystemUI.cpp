@@ -43,6 +43,12 @@ void SystemUI::setSystemInfoHandler(GetSystemInfoHandler infoHandler, void* info
     dirty = true;
 }
 
+void SystemUI::setDeleteGameDataHandler(DeleteGameDataHandler handler, void* context)
+{
+    deleteGameDataHandler = handler;
+    deleteGameDataContext = context;
+}
+
 Game* SystemUI::takeSelectedGame()
 {
     Game* result = selectedGame;
@@ -65,6 +71,7 @@ void SystemUI::onInit(Storage& storage)
     currentGroupIndex = UINT16_MAX;
     storageAvailable = storage.isAvailable();
     shutdownYesSelected = false;
+    deleteGameDataYesSelected = false;
     uiDirty = true;
     dirty = true;
 }
@@ -152,8 +159,66 @@ Game::GameState SystemUI::onUpdate(Input& input, Audio& audio, Storage& storage,
         break;
     }
 
+    case MODE_DELETE_GAME_DATA_CONFIRM:
+    {
+        if (input.justPressed(Input::Button::LEFT) ||
+            input.justPressed(Input::Button::RIGHT))
+        {
+            deleteGameDataYesSelected = !deleteGameDataYesSelected;
+            uiDirty = true;
+            audio.playSE(&Audio::SE::NO_1, 0.5f);
+        }
+
+        if (input.justPressed(Input::Button::B) ||
+            input.justPressed(Input::Button::HOME))
+        {
+            deleteGameDataYesSelected = false;
+            mode = MODE_SELECT;
+            uiDirty = true;
+            audio.playSE(&Audio::SE::NO_2, 0.8f);
+            break;
+        }
+
+        if (input.justPressed(Input::Button::A) ||
+            input.justPressed(Input::Button::START))
+        {
+            bool deleted = false;
+            if (deleteGameDataYesSelected)
+            {
+                Game* game = getSlotGame(selectedIndex);
+                if (game != nullptr && deleteGameDataHandler != nullptr)
+                {
+                    deleted = deleteGameDataHandler(game->getId(), deleteGameDataContext);
+                }
+            }
+
+            const bool confirmed = deleteGameDataYesSelected;
+            deleteGameDataYesSelected = false;
+            mode = MODE_SELECT;
+            uiDirty = true;
+            audio.playSE(confirmed && deleted ? &Audio::SE::NO_8 : &Audio::SE::NO_2, 0.8f);
+            break;
+        }
+        break;
+    }
+
     case MODE_SELECT:
     {
+        static constexpr uint64_t DELETE_GAME_DATA_HOLD_MSEC = 2000;
+
+        if (supportsGameDataDelete() &&
+            storageAvailable &&
+            getSlotGame(selectedIndex) != nullptr &&
+            input.pressed(Input::Button::Y) &&
+            input.holdMillis(Input::Button::Y) >= DELETE_GAME_DATA_HOLD_MSEC)
+        {
+            deleteGameDataYesSelected = false;
+            mode = MODE_DELETE_GAME_DATA_CONFIRM;
+            uiDirty = true;
+            audio.playSE(&Audio::SE::NO_3, 0.8f);
+            break;
+        }
+
         if (input.justPressed(Input::Button::B) && isInsideGroup())
         {
             returnToRootMenu();
@@ -264,6 +329,10 @@ bool SystemUI::onDraw(Graphics& graphics, bool requestFullRedraw)
     else if (mode == MODE_SHUTDOWN_CONFIRM)
     {
         drawShutdownConfirm(graphics);
+    }
+    else if (mode == MODE_DELETE_GAME_DATA_CONFIRM)
+    {
+        drawDeleteGameDataConfirm(graphics);
     }
     else
     {

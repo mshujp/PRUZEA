@@ -26,6 +26,11 @@ StorageBaseFile* StorageStub::openWrite(const char* gameId, const char* fileName
     return nullptr;
 }
 
+bool StorageStub::onDeleteGameData(const char* gameId)
+{
+    return false;
+}
+
 bool StorageStub::directoryExists(const char* path)
 {
     return false;

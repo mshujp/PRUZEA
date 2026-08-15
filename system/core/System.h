@@ -103,6 +103,7 @@ private:
     std::atomic<bool> audioAvailable{false};
 
     static void getSystemInfoHandler(SystemUI::SystemInfo& info, void* context);
+    static bool deleteGameDataHandler(const char* gameId, void* context);
 
     bool initialize();
     bool launchAudioWorker();

@@ -8,6 +8,7 @@ class StorageStub : public StorageBase
 {
 protected:
     StorageBaseFile* openWrite(const char* gameId, const char* fileName) override;
+    bool onDeleteGameData(const char* gameId) override;
 
 public:
     const char* getName() const override { return "NONE"; }

@@ -29,6 +29,7 @@ private:
 protected:
     static bool isValidGameId(const char* gameId);
     virtual StorageBaseFile* openWrite(const char* gameId, const char* fileName) = 0;
+    virtual bool onDeleteGameData(const char* gameId) = 0;
 
 public:
     using BinaryFileWriterHandler = bool(*)(StorageBaseFile& file, void* arg);
@@ -45,6 +46,7 @@ public:
 
     bool userFileExists(const char* gameId, const char* fileName);
     bool writeBinaryFile(const char* gameId, const char* fileName, BinaryFileWriterHandler writer, void* arg);
+    bool deleteGameData(const char* gameId);
 };
 
 } // namespace
