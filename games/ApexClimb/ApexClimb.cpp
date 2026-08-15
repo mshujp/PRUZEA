@@ -2910,6 +2910,9 @@ void ApexClimb::drawRanking(Graphics& g) const
             g.drawString("--:--.--", 132, y, Graphics::DARKGRAY, Graphics::SIZE_13, Graphics::HorizontalAlign::RIGHT,
                          Graphics::VerticalAlign::TOP);
         }
+        if (finishRank == i + 1) {
+            g.drawRect(14, y - 5, 132, 21, Graphics::WHITE);
+        }
 
         g.drawString(place, 206, y, i == 0 ? Graphics::YELLOW : Graphics::LIGHTGRAY, Graphics::SIZE_13);
 
@@ -2921,6 +2924,9 @@ void ApexClimb::drawRanking(Graphics& g) const
         } else {
             g.drawString("----", 282, y, Graphics::DARKGRAY, Graphics::SIZE_13, Graphics::HorizontalAlign::RIGHT,
                          Graphics::VerticalAlign::TOP);
+        }
+        if (finishDriftRank == i + 1) {
+            g.drawRect(174, y - 5, 132, 21, Graphics::WHITE);
         }
     }
 
