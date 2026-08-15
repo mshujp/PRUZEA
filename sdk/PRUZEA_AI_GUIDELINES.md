@@ -208,6 +208,7 @@
 ## Coding Rules
   - Prefer fixed-size arrays
   - Never use frame count for gameplay timing
+  - Unless otherwise specified, it is recommended to wrap source code lines at approximately 130 characters.
 
 ## Preferred C/C++ Functions
   Use these common C/C++ functions in PRUZEA games.
@@ -284,15 +285,73 @@
   - You **MUST** ensure that the return type, argument types, and `const` qualifiers match the base class perfectly.
 
 ## Strict Code Generation Rules
-  PRUZEA V1.x uses static linking. You must generate exactly two separate files:
-  - Header File:  <ClassName>.h
-    - Contains the complete class declaration, including member variables and method declarations.
+  PRUZEA V1.x uses static linking.
+  - Header File:
+    - Use <ClassName>.h as the main game header.
+    - It contains the complete game class declaration, including member variables and method declarations.
     - Do not place method implementations in the header, except compiler-required constexpr or inline definitions.
-  -.Implementation file <ClassName>.cpp
-    - Contains the class implementation only.
+  - Implementation Files:
+    - Use <ClassName>.cpp as the primary implementation file.
+    - For small or simple games, prefer the standard two-file structure:
+        - <ClassName>.h
+        - <ClassName>.cpp
+    - When the implementation becomes large or has clearly separable responsibilities, it may be split across
+      multiple .cpp files.
+    - Additional source files may be placed in subdirectories when this improves organization.
+    - A single game class may have its member function implementations distributed across multiple .cpp files
+      and subdirectories.
+    - Do not split files unnecessarily.
+  - File Organization Examples:
+      - Simple:
+        <ClassName>.h
+        <ClassName>.cpp
+      - Split:
+        <ClassName>.h
+        <ClassName>.cpp
+        <ClassName>Draw.cpp
+        <ClassName>Missions.cpp
+        CMakeLists.txt
+      - Split with subdirectories:
+        <ClassName>.h
+        <ClassName>.cpp
+        graphics/<ClassName>Draw.cpp
+        missions/<ClassName>Missions.cpp
+        effects/<ClassName>Effects.cpp
+        CMakeLists.txt
+
+  - CMakeLists.txt Examples:
+      When the game implementation is split across multiple `.cpp` files, use a `CMakeLists.txt` like the following.
+Replace `Game1` and the file names as appropriate for the generated game.
+```cmake
+set(PRUZEA_CURRENT_GAME_SOURCES
+    "${CMAKE_CURRENT_LIST_DIR}/Game1.cpp"
+    "${CMAKE_CURRENT_LIST_DIR}/Game1Draw.cpp"
+    "${CMAKE_CURRENT_LIST_DIR}/Game1Missions.cpp"
+)
+```
+```cmake
+set(PRUZEA_CURRENT_GAME_SOURCES
+    "${CMAKE_CURRENT_LIST_DIR}/Game1.cpp"
+    "${CMAKE_CURRENT_LIST_DIR}/graphics/Game1Draw.cpp"
+    "${CMAKE_CURRENT_LIST_DIR}/missions/Game1Missions.cpp"
+    "${CMAKE_CURRENT_LIST_DIR}/effects/Game1Effects.cpp"
+)
+```
+
+  - CMake Integration:
+    - When the game consists only of <ClassName>.h and <ClassName>.cpp, do not generate CMakeLists.txt.
+    - When additional .cpp files or source subdirectories are used, generate CMakeLists.txt.
+    - CMakeLists.txt MUST register all implementation .cpp files required by the game.
+    - Files placed in subdirectories must be referenced using their correct relative paths.
+    - All source files must be compiled and linked together as one game implementation.
+    - File or directory splitting is only an implementation detail. Do not create separate game classes or
+      separate build targets merely because the implementation is divided into multiple files.
+
   - Generation Order & Output Constraints:
-      Step 1: Generate the header file (<ClassName>.h) first.
-      Step 2: Generate the implementation file (<ClassName>.cpp).
+      Step 1: Generate <ClassName>.h.
+      Step 2: Generate <ClassName>.cpp.
+      Step 3: If needed, generate additional implementation files and subdirectories.
+      Step 4: If additional .cpp files or subdirectories are used, generate the corresponding CMakeLists.txt.
 
 ## Target Environment
   - Platform: pico-sdk (C++17)
