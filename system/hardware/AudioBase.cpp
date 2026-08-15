@@ -130,11 +130,13 @@ void AudioBase::startPendingSE()
     if (sound == nullptr) return;
 
     CriticalSectionLock lock(stateLock);
+    const bool replacingActiveSE = activeSE != nullptr;
+
     activeSE = sound;
     activeSEGain = gain;
     seStepIndex = 0;
     seStepWrittenSamples = 0;
-    sePhase = 0;
+    if (!replacingActiveSE) sePhase = 0;
 }
 
 void AudioBase::resetActiveSE()

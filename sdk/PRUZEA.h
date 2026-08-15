@@ -338,7 +338,8 @@ public:
     virtual void clearScreen() = 0;
     virtual void fillScreen(Color color) = 0;
     virtual void drawPixel(int16_t x, int16_t y, Color color) = 0;
-    virtual void drawLine(int16_t x1, int16_t y1, int16_t x2, int16_t y2, Color color)= 0;
+    virtual void drawLine(int16_t x1, int16_t y1, int16_t x2, int16_t y2, Color color) = 0;
+    virtual void drawWideLine(int16_t x0, int16_t y0, int16_t x1, int16_t y1, uint16_t thickness, Color color) = 0;
     virtual void drawTriangle(int16_t x0, int16_t y0, int16_t x1, int16_t y1, int16_t x2, int16_t y2, Color color) = 0;
     virtual void fillTriangle(int16_t x0, int16_t y0, int16_t x1, int16_t y1, int16_t x2, int16_t y2, Color color) = 0;
     virtual void drawRect(int16_t x, int16_t y, uint16_t w, uint16_t h, Color color) = 0;

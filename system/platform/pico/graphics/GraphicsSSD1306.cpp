@@ -74,6 +74,15 @@ void GraphicsSSD1306::drawLine(int16_t x1, int16_t y1, int16_t x2, int16_t y2, G
     screenDirty = true;
 }
 
+void GraphicsSSD1306::drawWideLine(int16_t x0, int16_t y0, int16_t x1, int16_t y1, uint16_t thickness, Graphics::Color color)
+{
+    if (thickness == 0) return;
+
+    const float radius = toScreenScale(static_cast<float>(thickness)) * 0.5f;
+    canvas.drawWideLine(toScreenX(x0), toScreenY(y0), toScreenX(x1), toScreenY(y1), radius, mono(color));
+    screenDirty = true;
+}
+
 void GraphicsSSD1306::drawBezier(int16_t x0, int16_t y0, int16_t x1, int16_t y1, int16_t x2, int16_t y2, Graphics::Color color)
 {
     canvas.drawBezier(toScreenX(x0), toScreenY(y0), toScreenX(x1), toScreenY(y1), toScreenX(x2), toScreenY(y2), mono(color));
