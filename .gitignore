@@ -40,6 +40,8 @@ lib/*
 !/games/SignalLost/**
 !/games/VectorFlite/
 !/games/VectorFlite/**
+!/games/ApexClimb/
+!/games/ApexClimb/**
 
 #===============================================================================
 # CMake
