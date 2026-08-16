@@ -870,8 +870,6 @@ protected:
     //   - [!IMPORTANT] After onTerminate() is called, onUpdate() and onDraw() will never be called again.
     virtual void onTerminate(Storage& storage) = 0;
 
-    virtual ~Game() {};
-
 public:
     // Returns the game ID.
     // The ID may contain only lowercase letters (a-z), digits (0-9), underscores (_), and hyphens (-), up to 32 characters.
@@ -944,6 +942,7 @@ public:
         onTerminate(storage);
         terminatedFlag = true;
     }
+    virtual ~Game() {};
 };
 
 } // namespace PRUZEA

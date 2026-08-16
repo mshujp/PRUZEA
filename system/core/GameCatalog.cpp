@@ -8,13 +8,6 @@ using namespace PRUZEA;
 
 namespace
 {
-    const char* safeMenuName(const Game* game)
-    {
-        if (game == nullptr) return "";
-        const char* name = game->getMenuName();
-        return name == nullptr ? "" : name;
-    }
-
     int compareAsciiIgnoreCase(const char* a, const char* b)
     {
         if (a == nullptr) a = "";
@@ -44,10 +37,6 @@ namespace
         return *a == '\0' ? -1 : 1;
     }
 
-    bool gameNameLess(const Game* a, const Game* b)
-    {
-        return compareAsciiIgnoreCase(safeMenuName(a), safeMenuName(b)) < 0;
-    }
 }
 
 GameCatalog::GameCatalog()
@@ -57,12 +46,12 @@ GameCatalog::GameCatalog()
     groups.reserve(8);
 }
 
-void GameCatalog::addGame(Game* game, GraphicsBase& graphics)
+void GameCatalog::addGame(const Game& game, CreateGameHandler create, GraphicsBase& graphics)
 {
-    if (game == nullptr) return;
+    if (create == nullptr || games.size() >= INVALID_GAME_INDEX) return;
 
-    const uint16_t gameWidth  = game->getTargetScreenWidth();
-    const uint16_t gameHeight = game->getTargetScreenHeight();
+    const uint16_t gameWidth  = game.getTargetScreenWidth();
+    const uint16_t gameHeight = game.getTargetScreenHeight();
 
     const uint16_t screenWidth  = graphics.getScreenWidth();
     const uint16_t screenHeight = graphics.getScreenHeight();
@@ -84,11 +73,22 @@ void GameCatalog::addGame(Game* game, GraphicsBase& graphics)
         break;
     }
 
-    if (accept)
-    {
-        games.push_back(game);
-        menuBuilt = false;
-    }
+    if (!accept) return;
+
+    GameEntry entry;
+    const char* id = game.getId();
+    const char* name = game.getName();
+    const char* menuName = game.getMenuName();
+    const char* menuGroup = game.getMenuGroup();
+    entry.id = id == nullptr ? "" : id;
+    entry.name = name == nullptr ? "" : name;
+    entry.menuName = menuName == nullptr ? "" : menuName;
+    entry.menuGroup = menuGroup == nullptr ? "" : menuGroup;
+    entry.targetWidth = gameWidth;
+    entry.targetHeight = gameHeight;
+    entry.create = create;
+    games.push_back(entry);
+    menuBuilt = false;
 }
 
 void GameCatalog::ensureMenuBuilt() const
@@ -101,21 +101,20 @@ void GameCatalog::ensureMenuBuilt() const
     rootGames.clear();
     groups.clear();
 
-    for (Game* game : games)
+    for (GameIndex gameIndex = 0; gameIndex < games.size(); ++gameIndex)
     {
-        if (game == nullptr) continue;
+        const GameEntry& game = games[gameIndex];
 
-        const char* groupName = game->getMenuGroup();
-        if (groupName == nullptr || groupName[0] == '\0')
+        if (game.menuGroup.empty())
         {
-            rootGames.push_back(game);
+            rootGames.push_back(gameIndex);
             continue;
         }
 
         MenuGroup* target = nullptr;
         for (MenuGroup& group : groups)
         {
-            if (compareAsciiIgnoreCase(group.name.c_str(), groupName) == 0)
+            if (compareAsciiIgnoreCase(group.name.c_str(), game.menuGroup.c_str()) == 0)
             {
                 target = &group;
                 break;
@@ -125,12 +124,17 @@ void GameCatalog::ensureMenuBuilt() const
         if (target == nullptr)
         {
             groups.push_back(MenuGroup{});
-            groups.back().name = groupName;
+            groups.back().name = game.menuGroup;
             target = &groups.back();
         }
 
-        target->games.push_back(game);
+        target->games.push_back(gameIndex);
     }
+
+    const auto gameNameLess = [this](GameIndex a, GameIndex b)
+    {
+        return compareAsciiIgnoreCase(games[a].menuName.c_str(), games[b].menuName.c_str()) < 0;
+    };
 
     std::sort(rootGames.begin(), rootGames.end(), gameNameLess);
 
@@ -148,14 +152,25 @@ void GameCatalog::ensureMenuBuilt() const
     menuBuilt = true;
 }
 
-Game* GameCatalog::getGame(uint16_t index) const
+Game* GameCatalog::createGame(GameIndex index) const
 {
-    return index < games.size() ? games[index] : nullptr;
+    if (index >= games.size() || games[index].create == nullptr) return nullptr;
+    return games[index].create();
+}
+
+const char* GameCatalog::getGameId(GameIndex index) const
+{
+    return index < games.size() ? games[index].id.c_str() : nullptr;
+}
+
+const char* GameCatalog::getGameMenuName(GameIndex index) const
+{
+    return index < games.size() ? games[index].menuName.c_str() : nullptr;
 }
 
 uint16_t GameCatalog::getGameCount() const
 {
-    return games.size() > UINT16_MAX ? UINT16_MAX : static_cast<uint16_t>(games.size());
+    return static_cast<uint16_t>(games.size());
 }
 
 uint16_t GameCatalog::getRootItemCount() const
@@ -181,20 +196,20 @@ const char* GameCatalog::getRootItemName(uint16_t index) const
     }
 
     const size_t gameIndex = static_cast<size_t>(index) - groups.size();
-    return gameIndex < rootGames.size() ? safeMenuName(rootGames[gameIndex]) : nullptr;
+    return gameIndex < rootGames.size() ? getGameMenuName(rootGames[gameIndex]) : nullptr;
 }
 
-Game* GameCatalog::getRootItemGame(uint16_t index) const
+GameCatalog::GameIndex GameCatalog::getRootItemGameIndex(uint16_t index) const
 {
     ensureMenuBuilt();
 
     if (index < groups.size())
     {
-        return nullptr;
+        return INVALID_GAME_INDEX;
     }
 
     const size_t gameIndex = static_cast<size_t>(index) - groups.size();
-    return gameIndex < rootGames.size() ? rootGames[gameIndex] : nullptr;
+    return gameIndex < rootGames.size() ? rootGames[gameIndex] : INVALID_GAME_INDEX;
 }
 
 uint16_t GameCatalog::getRootItemGroupIndex(uint16_t index) const
@@ -224,11 +239,11 @@ uint16_t GameCatalog::getGroupGameCount(uint16_t groupIndex) const
     return count > UINT16_MAX ? UINT16_MAX : static_cast<uint16_t>(count);
 }
 
-Game* GameCatalog::getGroupGame(uint16_t groupIndex, uint16_t gameIndex) const
+GameCatalog::GameIndex GameCatalog::getGroupGameIndex(uint16_t groupIndex, uint16_t gameIndex) const
 {
     ensureMenuBuilt();
-    if (groupIndex >= groups.size()) return nullptr;
+    if (groupIndex >= groups.size()) return INVALID_GAME_INDEX;
 
-    const std::vector<Game*>& groupGames = groups[groupIndex].games;
-    return gameIndex < groupGames.size() ? groupGames[gameIndex] : nullptr;
+    const std::vector<GameIndex>& groupGames = groups[groupIndex].games;
+    return gameIndex < groupGames.size() ? groupGames[gameIndex] : INVALID_GAME_INDEX;
 }

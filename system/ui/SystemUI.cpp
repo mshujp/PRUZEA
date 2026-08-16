@@ -30,7 +30,7 @@ void SystemUI::setCatalog(GameCatalog* catalog)
     this->catalog = catalog;
     selectedIndex = 0;
     pageIndex = 0;
-    selectedGame = nullptr;
+    selectedGameIndex = GameCatalog::INVALID_GAME_INDEX;
     currentGroupIndex = UINT16_MAX;
     uiDirty = true;
 }
@@ -49,10 +49,10 @@ void SystemUI::setDeleteGameDataHandler(DeleteGameDataHandler handler, void* con
     deleteGameDataContext = context;
 }
 
-Game* SystemUI::takeSelectedGame()
+GameCatalog::GameIndex SystemUI::takeSelectedGameIndex()
 {
-    Game* result = selectedGame;
-    selectedGame = nullptr;
+    const GameCatalog::GameIndex result = selectedGameIndex;
+    selectedGameIndex = GameCatalog::INVALID_GAME_INDEX;
     return result;
 }
 
@@ -67,7 +67,7 @@ void SystemUI::onInit(Storage& storage)
     selectedIndex = 0;
     pageIndex = 0;
     splashFrames = 0;
-    selectedGame = nullptr;
+    selectedGameIndex = GameCatalog::INVALID_GAME_INDEX;
     currentGroupIndex = UINT16_MAX;
     storageAvailable = storage.isAvailable();
     shutdownYesSelected = false;
@@ -185,10 +185,11 @@ Game::GameState SystemUI::onUpdate(Input& input, Audio& audio, Storage& storage,
             bool deleted = false;
             if (deleteGameDataYesSelected)
             {
-                Game* game = getSlotGame(selectedIndex);
-                if (game != nullptr && deleteGameDataHandler != nullptr)
+                const GameCatalog::GameIndex gameIndex = getSlotGameIndex(selectedIndex);
+                const char* gameId = catalog == nullptr ? nullptr : catalog->getGameId(gameIndex);
+                if (gameId != nullptr && deleteGameDataHandler != nullptr)
                 {
-                    deleted = deleteGameDataHandler(game->getId(), deleteGameDataContext);
+                    deleted = deleteGameDataHandler(gameId, deleteGameDataContext);
                 }
             }
 
@@ -208,7 +209,7 @@ Game::GameState SystemUI::onUpdate(Input& input, Audio& audio, Storage& storage,
 
         if (supportsGameDataDelete() &&
             storageAvailable &&
-            getSlotGame(selectedIndex) != nullptr &&
+            getSlotGameIndex(selectedIndex) != GameCatalog::INVALID_GAME_INDEX &&
             input.pressed(Input::Button::Y) &&
             input.holdMillis(Input::Button::Y) >= DELETE_GAME_DATA_HOLD_MSEC)
         {
@@ -278,10 +279,10 @@ Game::GameState SystemUI::onUpdate(Input& input, Audio& audio, Storage& storage,
                     break;
                 }
 
-                Game* game = getSlotGame(selectedIndex);
-                if (game != nullptr)
+                const GameCatalog::GameIndex gameIndex = getSlotGameIndex(selectedIndex);
+                if (gameIndex != GameCatalog::INVALID_GAME_INDEX)
                 {
-                    selectedGame = game;
+                    selectedGameIndex = gameIndex;
                     audio.playSE(&Audio::SE::NO_8, 0.9f);
                     uiDirty = true;
                     break;
@@ -346,7 +347,7 @@ bool SystemUI::onDraw(Graphics& graphics, bool requestFullRedraw)
 
 void SystemUI::onTerminate(Storage& storage)
 {
-    selectedGame = nullptr;
+    selectedGameIndex = GameCatalog::INVALID_GAME_INDEX;
     mode = Mode::MODE_TERMINATED;
 }
 
@@ -433,13 +434,13 @@ bool SystemUI::isSlotGroup(uint16_t index) const
            catalog->isRootItemGroup(index);
 }
 
-Game* SystemUI::getSlotGame(uint16_t index) const
+GameCatalog::GameIndex SystemUI::getSlotGameIndex(uint16_t index) const
 {
-    if (catalog == nullptr) return nullptr;
+    if (catalog == nullptr) return GameCatalog::INVALID_GAME_INDEX;
 
     return isInsideGroup()
-        ? catalog->getGroupGame(currentGroupIndex, index)
-        : catalog->getRootItemGame(index);
+        ? catalog->getGroupGameIndex(currentGroupIndex, index)
+        : catalog->getRootItemGameIndex(index);
 }
 
 const char* SystemUI::getSlotName(uint16_t index) const
@@ -461,13 +462,13 @@ const char* SystemUI::getSlotName(uint16_t index) const
         return slotNameBuffer;
     }
 
-    Game* game = getSlotGame(index);
-    if (game == nullptr)
+    const GameCatalog::GameIndex gameIndex = getSlotGameIndex(index);
+    if (gameIndex == GameCatalog::INVALID_GAME_INDEX)
     {
         return "EMPTY";
     }
 
-    const char* name = game->getMenuName();
+    const char* name = catalog->getGameMenuName(gameIndex);
     return (name == nullptr || name[0] == '\0') ? "UNTITLED" : name;
 }
 

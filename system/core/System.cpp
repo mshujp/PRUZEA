@@ -208,17 +208,26 @@ bool System::loop()
             return false;
         }
 
-        currentGame = systemUI.takeSelectedGame();
-        if (currentGame == nullptr)
+        const GameCatalog::GameIndex selectedGameIndex = systemUI.takeSelectedGameIndex();
+        if (selectedGameIndex == GameCatalog::INVALID_GAME_INDEX)
         {
             drew = systemUI.draw(graphics, fullRedraw);
         }
         else
         {
-            initGame(*currentGame);
-            execState = ExecState::IN_GAME;
-            requestFullRedraw = true;
-            lastFrameMsec = 0;
+            currentGame = gameCatalog.createGame(selectedGameIndex);
+            if (currentGame == nullptr)
+            {
+                audio.playSE(&Audio::SE::NO_13, 0.6f);
+                requestFullRedraw = true;
+            }
+            else
+            {
+                initGame(*currentGame);
+                execState = ExecState::IN_GAME;
+                requestFullRedraw = true;
+                lastFrameMsec = 0;
+            }
         }
 
         if (input.pressed(Input::Button::X) && input.justPressed(Input::Button::SELECT)) debugMode = !debugMode;
@@ -236,6 +245,7 @@ bool System::loop()
                 audio.stopSE();
                 audio.stopMusic();
                 currentGame->terminate(storage);
+                delete currentGame;
                 currentGame = nullptr;
                 returnToSystemUI();
                 audio.playSE(&Audio::SE::NO_2, 1.0f);
@@ -249,6 +259,7 @@ bool System::loop()
             if (gameState == Game::GameState::TERMINATED)
             {
                 audio.stopMusic();
+                delete currentGame;
                 currentGame = nullptr;
                 returnToSystemUI();
                 audio.playSE(&Audio::SE::NO_2, 1.0f);
@@ -549,6 +560,7 @@ void System::stopAllServices(bool keepDisplayActive)
     if (currentGame != nullptr)
     {
         currentGame->terminate(storage);
+        delete currentGame;
         currentGame = nullptr;
     }
 

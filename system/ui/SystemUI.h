@@ -41,7 +41,7 @@ protected:
     uint16_t currentGroupIndex = UINT16_MAX;
     uint8_t splashFrames = 0;
 
-    Game* selectedGame = nullptr;
+    GameCatalog::GameIndex selectedGameIndex = GameCatalog::INVALID_GAME_INDEX;
 
     bool splashShownOnce = false;
     bool storageAvailable = false;
@@ -74,7 +74,7 @@ protected:
     uint16_t getVisibleItemCount() const;
     bool isSlotAvailable(uint16_t index) const;
     bool isSlotGroup(uint16_t index) const;
-    Game* getSlotGame(uint16_t index) const;
+    GameCatalog::GameIndex getSlotGameIndex(uint16_t index) const;
     const char* getSlotName(uint16_t index) const;
     const char* getCurrentMenuTitle() const;
     uint16_t getPageCount() const;
@@ -89,7 +89,7 @@ public:
     void setCatalog(GameCatalog* catalog);
     void setSystemInfoHandler(GetSystemInfoHandler infoHandler, void* infoContext);
     void setDeleteGameDataHandler(DeleteGameDataHandler handler, void* context);
-    Game* takeSelectedGame();
+    GameCatalog::GameIndex takeSelectedGameIndex();
 
     Mode getMode() const;
 
