@@ -95,7 +95,6 @@ bool System::initialize()
     updateCoreRingPowerState();
     srand(Platform::getMsec());
 
-    registerGeneratedGames(gameCatalog, graphics);
     systemUI.setCatalog(&gameCatalog);
     systemUI.setSystemInfoHandler(&System::getSystemInfoHandler, this);
     systemUI.setDeleteGameDataHandler(&System::deleteGameDataHandler, this);
@@ -103,6 +102,17 @@ bool System::initialize()
     if (graphicsAvailable && inputAvailable)
     {
         systemUI.init(storage);
+        systemUI.drawStartupSplash(graphics);
+        graphics.push();
+
+        const uint32_t splashStartMsec = Platform::getMsec();
+        registerGeneratedGames(gameCatalog, graphics);
+        const uint32_t splashElapsedMsec = Platform::getMsec() - splashStartMsec;
+        if (splashElapsedMsec < MIN_SPLASH_DISPLAY_MSEC)
+        {
+            Platform::sleepMsec(MIN_SPLASH_DISPLAY_MSEC - splashElapsedMsec);
+        }
+        systemUI.completeStartupSplash();
     }
 
     CoreRing::setMode(CoreRing::MODE_SYSTEM_UI);

@@ -89,6 +89,8 @@ public:
     void setCatalog(GameCatalog* catalog);
     void setSystemInfoHandler(GetSystemInfoHandler infoHandler, void* infoContext);
     void setDeleteGameDataHandler(DeleteGameDataHandler handler, void* context);
+    void drawStartupSplash(Graphics& graphics);
+    void completeStartupSplash();
     GameCatalog::GameIndex takeSelectedGameIndex();
 
     Mode getMode() const;

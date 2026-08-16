@@ -61,6 +61,7 @@ private:
     };
 
     static constexpr uint16_t BATTERY_HISTORY_SIZE = 10;
+    static constexpr uint32_t MIN_SPLASH_DISPLAY_MSEC = 800;
     static constexpr uint32_t AUDIO_WORKER_START_TIMEOUT_MSEC = 500;
     static constexpr uint32_t AUDIO_WORKER_STOP_TIMEOUT_MSEC = 500;
 

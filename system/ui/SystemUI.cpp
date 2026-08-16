@@ -49,6 +49,20 @@ void SystemUI::setDeleteGameDataHandler(DeleteGameDataHandler handler, void* con
     deleteGameDataContext = context;
 }
 
+void SystemUI::drawStartupSplash(Graphics& graphics)
+{
+    drawSplash(graphics);
+}
+
+void SystemUI::completeStartupSplash()
+{
+    splashShownOnce = true;
+    mode = MODE_SELECT;
+    splashFrames = 0;
+    uiDirty = true;
+    dirty = true;
+}
+
 GameCatalog::GameIndex SystemUI::takeSelectedGameIndex()
 {
     const GameCatalog::GameIndex result = selectedGameIndex;
