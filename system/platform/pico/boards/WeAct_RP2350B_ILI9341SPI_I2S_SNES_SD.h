@@ -142,7 +142,9 @@ constexpr PRUZEA::PicoPlatform::BatteryConfig BATTERY_CONFIG {
     // ===== ADC =====
     .adcPin = 42,
     .adcChannel = 2,
-
+    .voltageCalibrationFactor = 1.067f,
+    .voltageCalibrationOffset = 0.0f, 
+    
     // ===== Voltage Thresholds =====
     .externalPowerThresholdVoltage = 2.0f,
     .warningVoltage = 3.6f,

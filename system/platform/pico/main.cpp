@@ -49,10 +49,8 @@ using namespace PRUZEA;
 namespace
 {
 
-#if PICO_RP2350
-constexpr size_t AUDIO_CORE_STACK_SIZE = 4 * 1024;
+constexpr size_t AUDIO_CORE_STACK_SIZE = 2 * 1024;
 alignas(8) uint32_t audioCoreStack[AUDIO_CORE_STACK_SIZE / sizeof(uint32_t)];
-#endif
 
 #if PRUZEA_DISPLAY_ILI9341
 GraphicsILI9341 graphicsImpl(GRAPHICS_CONFIG);
@@ -129,7 +127,8 @@ bool readBatteryVoltage(void*, float& voltage)
 
     adc_select_input(BATTERY_CONFIG.adcChannel);
     const uint16_t raw = adc_read();
-    voltage = (raw * 3.3f / 4095.0f) * 2.0f;
+    voltage = (raw * 3.3f / 4095.0f) * 2.0f * BATTERY_CONFIG.voltageCalibrationFactor + BATTERY_CONFIG.voltageCalibrationOffset;
+    printf("Battery: raw=%u voltage=%.3f\n", raw, voltage);
     return true;
 }
 
@@ -144,11 +143,7 @@ void __time_critical_func(audioCoreEntry)()
 bool launchAudioWorker(void*, System& system)
 {
     activeSystem = &system;
-#if PICO_RP2350
     multicore_launch_core1_with_stack(audioCoreEntry, audioCoreStack, sizeof(audioCoreStack));
-#else
-    multicore_launch_core1(audioCoreEntry);
-#endif
     return true;
 }
 
