@@ -294,8 +294,6 @@ void PruzeaAPIs::onInit(Storage& storage) {
     saveDataSaveOk = false;
     saveDataLoadOk = false;
     saveDataMatch = false;
-    saveDataEntryCount = 0;
-    saveDataUsedBytes = 0;
 }
 
 PRUZEA::Game::GameState PruzeaAPIs::onUpdate(Input& input, Audio& audio, Storage& storage, float deltaSec) {
@@ -414,8 +412,6 @@ void PruzeaAPIs::runStorageTest(Storage& storage) {
     saveDataSaveOk = false;
     saveDataLoadOk = false;
     saveDataMatch = false;
-    saveDataEntryCount = 0;
-    saveDataUsedBytes = 0;
 
     if (!storageAvailable) {
         dirty = true;
@@ -459,8 +455,6 @@ void PruzeaAPIs::runStorageTest(Storage& storage) {
         saveData.getBool("flag", false) == flagValue &&
         strcmp(loadedText, textValue) == 0;
 
-    saveDataEntryCount = saveData.getEntryCount();
-    saveDataUsedBytes = saveData.getUsedBytes();
     dirty = true;
 }
 
@@ -730,10 +724,7 @@ bool PruzeaAPIs::drawStorageTest(Graphics& g) {
              saveDataLoadOk ? "OK" : "NG",
              saveDataMatch ? "OK" : "NG");
     g.drawString(line, 16, 172, saveDataMatch ? COL_GREEN : COL_DANGER, Graphics::SIZE_13);
-    snprintf(line, sizeof(line), "ENTRIES %u   USED %u / 512 BYTES",
-             static_cast<unsigned>(saveDataEntryCount),
-             static_cast<unsigned>(saveDataUsedBytes));
-    g.drawString(line, 315, 190, COL_DIM, Graphics::SIZE_13,
+    g.drawString("DYNAMIC KEY-VALUE STORAGE", 315, 190, COL_DIM, Graphics::SIZE_13,
                  Graphics::HorizontalAlign::RIGHT, Graphics::VerticalAlign::TOP);
 
     drawCenteredHint(g, "A: Retest   B/START: Title", 214);

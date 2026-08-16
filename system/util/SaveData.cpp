@@ -4,321 +4,240 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <string>
+#include <vector>
 
 namespace PRUZEA
 {
 
-namespace
+class SaveDataImpl
 {
-    constexpr size_t LOAD_KEY_BUF_SIZE = 64;
-    constexpr size_t LOAD_VALUE_BUF_SIZE = 256;
-
-    bool isValidKey(const char* key)
+public:
+    struct Entry
     {
-        if (key == nullptr || key[0] == '\0')
-        {
-            return false;
-        }
-        for (const char* p = key; *p != '\0'; ++p)
-        {
-            if (*p == '=' || *p == '\n' || *p == '\r')
-            {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    bool isValidValue(const char* value)
-    {
-        if (value == nullptr)
-        {
-            return false;
-        }
-        for (const char* p = value; *p != '\0'; ++p)
-        {
-            if (*p == '\n' || *p == '\r')
-            {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    struct LoadContext
-    {
-        SaveData* self;
-        bool failed;
+        std::string key;
+        std::string value;
     };
 
-    bool loadLineCallback(const char* line, void* arg)
+    std::vector<Entry> entries;
+    bool dirty = false;
+
+    Entry* find(const char* key)
     {
-        LoadContext* ctx = static_cast<LoadContext*>(arg);
-        if (line == nullptr)
+        if (key == nullptr) return nullptr;
+        for (Entry& entry : entries)
         {
-            return true;
+            if (entry.key == key) return &entry;
         }
-
-        const char* eq = strchr(line, '=');
-        if (eq == nullptr || eq == line)
-        {
-            return true;
-        }
-
-        const size_t keyLen = static_cast<size_t>(eq - line);
-        if (keyLen >= LOAD_KEY_BUF_SIZE)
-        {
-            return true;
-        }
-        char keyBuf[LOAD_KEY_BUF_SIZE];
-        memcpy(keyBuf, line, keyLen);
-        keyBuf[keyLen] = '\0';
-
-        const char* rawValue = eq + 1;
-        size_t valueLen = strlen(rawValue);
-        while (valueLen > 0 && (rawValue[valueLen - 1] == '\r' || rawValue[valueLen - 1] == '\n'))
-        {
-            --valueLen;
-        }
-        if (valueLen >= LOAD_VALUE_BUF_SIZE)
-        {
-            valueLen = LOAD_VALUE_BUF_SIZE - 1;
-        }
-        char valueBuf[LOAD_VALUE_BUF_SIZE];
-        memcpy(valueBuf, rawValue, valueLen);
-        valueBuf[valueLen] = '\0';
-
-        if (!ctx->self->setString(keyBuf, valueBuf))
-        {
-            ctx->failed = true;
-            return false;
-        }
-        return true;
+        return nullptr;
     }
+
+    const Entry* find(const char* key) const
+    {
+        if (key == nullptr) return nullptr;
+        for (const Entry& entry : entries)
+        {
+            if (entry.key == key) return &entry;
+        }
+        return nullptr;
+    }
+
+    void release()
+    {
+        std::vector<Entry>().swap(entries);
+    }
+};
+
+namespace
+{
+
+bool isValidKey(const char* key)
+{
+    if (key == nullptr || key[0] == '\0') return false;
+    for (const char* p = key; *p != '\0'; ++p)
+    {
+        if (*p == '=' || *p == '\n' || *p == '\r') return false;
+    }
+    return true;
+}
+
+bool isValidValue(const char* value)
+{
+    if (value == nullptr) return false;
+    for (const char* p = value; *p != '\0'; ++p)
+    {
+        if (*p == '\n' || *p == '\r') return false;
+    }
+    return true;
+}
+
+struct LoadContext
+{
+    SaveData* self;
+    bool failed;
+};
+
+bool loadLineCallback(const char* line, void* arg)
+{
+    LoadContext* context = static_cast<LoadContext*>(arg);
+    if (line == nullptr) return true;
+
+    std::string text(line);
+    const size_t separator = text.find('=');
+    if (separator == std::string::npos || separator == 0) return true;
+
+    std::string key = text.substr(0, separator);
+    std::string value = text.substr(separator + 1);
+    while (!value.empty() && (value.back() == '\r' || value.back() == '\n')) value.pop_back();
+
+    if (!context->self->setString(key.c_str(), value.c_str()))
+    {
+        context->failed = true;
+        return false;
+    }
+    return true;
+}
+
+struct SaveContext
+{
+    const SaveDataImpl* impl;
+    size_t cursor;
+};
+
+bool writeLineCallback(std::string& line, void* arg)
+{
+    SaveContext* context = static_cast<SaveContext*>(arg);
+    if (context->cursor >= context->impl->entries.size()) return false;
+
+    const SaveDataImpl::Entry& entry = context->impl->entries[context->cursor++];
+    line = entry.key;
+    line += '=';
+    line += entry.value;
+    return true;
+}
+
 } // namespace
 
-SaveData::SaveData() : entryCount(0), usedBytes(0), dirty(false), saveCursor(0)
+SaveData::SaveData() : impl(new SaveDataImpl())
 {
+}
+
+SaveData::~SaveData()
+{
+    delete static_cast<SaveDataImpl*>(impl);
 }
 
 void SaveData::clear()
 {
-    entryCount = 0;
-    usedBytes = 0;
-    dirty = true;
-}
-
-int16_t SaveData::findEntry(const char* key) const
-{
-    if (key == nullptr)
-    {
-        return -1;
-    }
-    for (uint8_t i = 0; i < entryCount; ++i)
-    {
-        if (strcmp(buffer + entries[i].keyOffset, key) == 0)
-        {
-            return static_cast<int16_t>(i);
-        }
-    }
-    return -1;
-}
-
-bool SaveData::appendString(const char* text, uint16_t& offset)
-{
-    const size_t len = strlen(text) + 1;
-    if (usedBytes + len > BUFFER_SIZE)
-    {
-        return false;
-    }
-    memcpy(buffer + usedBytes, text, len);
-    offset = usedBytes;
-    usedBytes = static_cast<uint16_t>(usedBytes + len);
-    return true;
+    SaveDataImpl* data = static_cast<SaveDataImpl*>(impl);
+    if (data == nullptr) return;
+    data->release();
+    data->dirty = true;
 }
 
 bool SaveData::contains(const char* key) const
 {
-    return findEntry(key) >= 0;
+    const SaveDataImpl* data = static_cast<const SaveDataImpl*>(impl);
+    return data != nullptr && data->find(key) != nullptr;
 }
 
 bool SaveData::remove(const char* key)
 {
-    const int16_t idx = findEntry(key);
-    if (idx < 0)
+    SaveDataImpl* data = static_cast<SaveDataImpl*>(impl);
+    if (data == nullptr || key == nullptr) return false;
+
+    for (auto it = data->entries.begin(); it != data->entries.end(); ++it)
     {
-        return false;
+        if (it->key != key) continue;
+        data->entries.erase(it);
+        data->dirty = true;
+        return true;
     }
-    entries[idx] = entries[entryCount - 1];
-    entryCount--;
-    dirty = true;
-    return true;
+    return false;
 }
 
 bool SaveData::getString(const char* key, char* outValue, size_t outSize, const char* defaultValue) const
 {
-    if (outValue == nullptr || outSize == 0)
-    {
-        return false;
-    }
+    if (outValue == nullptr || outSize == 0) return false;
 
-    const int16_t idx = findEntry(key);
-    if (idx < 0)
-    {
-        size_t i = 0;
-        if (defaultValue != nullptr)
-        {
-            for (; i < outSize - 1 && defaultValue[i] != '\0'; ++i)
-            {
-                outValue[i] = defaultValue[i];
-            }
-        }
-        outValue[i] = '\0';
-        return false;
-    }
+    const SaveDataImpl* data = static_cast<const SaveDataImpl*>(impl);
+    const SaveDataImpl::Entry* entry = data != nullptr ? data->find(key) : nullptr;
+    const char* source = entry != nullptr ? entry->value.c_str() : (defaultValue != nullptr ? defaultValue : "");
 
-    const char* value = buffer + entries[idx].valueOffset;
-    size_t i = 0;
-    for (; i < outSize - 1 && value[i] != '\0'; ++i)
-    {
-        outValue[i] = value[i];
-    }
-    const bool fits = (value[i] == '\0');
-    outValue[i] = '\0';
-    return fits;
+    size_t index = 0;
+    for (; index < outSize - 1 && source[index] != '\0'; ++index) outValue[index] = source[index];
+    const bool fits = source[index] == '\0';
+    outValue[index] = '\0';
+    return entry != nullptr && fits;
 }
 
 int32_t SaveData::getInt32(const char* key, int32_t defaultValue) const
 {
-    const int16_t idx = findEntry(key);
-    if (idx < 0)
-    {
-        return defaultValue;
-    }
-    const char* value = buffer + entries[idx].valueOffset;
-    if (value[0] == '\0')
-    {
-        return defaultValue;
-    }
-    char* endPtr = nullptr;
-    const long long result = strtoll(value, &endPtr, 10);
-    if (endPtr == value || *endPtr != '\0')
-    {
-        return defaultValue; // trailing garbage or empty
-    }
-    if (result < static_cast<long long>(INT32_MIN) || result > static_cast<long long>(INT32_MAX))
-    {
-        return defaultValue; // out of range
-    }
+    const SaveDataImpl* data = static_cast<const SaveDataImpl*>(impl);
+    const SaveDataImpl::Entry* entry = data != nullptr ? data->find(key) : nullptr;
+    if (entry == nullptr || entry->value.empty()) return defaultValue;
+
+    char* end = nullptr;
+    const long long result = std::strtoll(entry->value.c_str(), &end, 10);
+    if (end == entry->value.c_str() || *end != '\0' || result < INT32_MIN || result > INT32_MAX) return defaultValue;
     return static_cast<int32_t>(result);
 }
 
 uint32_t SaveData::getUInt32(const char* key, uint32_t defaultValue) const
 {
-    const int16_t idx = findEntry(key);
-    if (idx < 0)
-    {
-        return defaultValue;
-    }
-    const char* value = buffer + entries[idx].valueOffset;
-    if (value[0] == '\0' || value[0] == '-')
-    {
-        return defaultValue; // empty or negative is not a valid uint32
-    }
-    char* endPtr = nullptr;
-    const unsigned long long result = strtoull(value, &endPtr, 10);
-    if (endPtr == value || *endPtr != '\0')
-    {
-        return defaultValue;
-    }
-    if (result > static_cast<unsigned long long>(UINT32_MAX))
-    {
-        return defaultValue;
-    }
+    const SaveDataImpl* data = static_cast<const SaveDataImpl*>(impl);
+    const SaveDataImpl::Entry* entry = data != nullptr ? data->find(key) : nullptr;
+    if (entry == nullptr || entry->value.empty() || entry->value[0] == '-') return defaultValue;
+
+    char* end = nullptr;
+    const unsigned long long result = std::strtoull(entry->value.c_str(), &end, 10);
+    if (end == entry->value.c_str() || *end != '\0' || result > UINT32_MAX) return defaultValue;
     return static_cast<uint32_t>(result);
 }
 
 bool SaveData::getBool(const char* key, bool defaultValue) const
 {
-    const int16_t idx = findEntry(key);
-    if (idx < 0)
-    {
-        return defaultValue;
-    }
-    const char* value = buffer + entries[idx].valueOffset;
-    if (strcmp(value, "1") == 0)
-    {
-        return true;
-    }
-    if (strcmp(value, "0") == 0)
-    {
-        return false;
-    }
+    const SaveDataImpl* data = static_cast<const SaveDataImpl*>(impl);
+    const SaveDataImpl::Entry* entry = data != nullptr ? data->find(key) : nullptr;
+    if (entry == nullptr) return defaultValue;
+    if (entry->value == "1") return true;
+    if (entry->value == "0") return false;
     return defaultValue;
 }
 
 bool SaveData::setString(const char* key, const char* value)
 {
-    if (!isValidKey(key) || !isValidValue(value))
-    {
-        return false;
-    }
+    if (!isValidKey(key) || !isValidValue(value)) return false;
 
-    const int16_t idx = findEntry(key);
-    if (idx >= 0)
-    {
-        const char* currentValue = buffer + entries[idx].valueOffset;
-        if (strcmp(currentValue, value) == 0)
-        {
-            return true;
-        }
-        uint16_t newValueOffset = 0;
-        if (!appendString(value, newValueOffset))
-        {
-            return false;
-        }
-        entries[idx].valueOffset = newValueOffset;
-        dirty = true;
-        return true;
-    }
+    SaveDataImpl* data = static_cast<SaveDataImpl*>(impl);
+    if (data == nullptr) return false;
 
-    if (entryCount >= MAX_ENTRIES)
+    SaveDataImpl::Entry* entry = data->find(key);
+    if (entry != nullptr)
     {
-        return false;
+        if (entry->value == value) return true;
+        entry->value = value;
     }
-
-    const uint16_t savedUsedBytes = usedBytes;
-    uint16_t keyOffset = 0;
-    uint16_t valueOffset = 0;
-    if (!appendString(key, keyOffset))
+    else
     {
-        return false;
+        data->entries.push_back({key, value});
     }
-    if (!appendString(value, valueOffset))
-    {
-        usedBytes = savedUsedBytes;
-        return false;
-    }
-
-    entries[entryCount].keyOffset = keyOffset;
-    entries[entryCount].valueOffset = valueOffset;
-    entryCount++;
-    dirty = true;
+    data->dirty = true;
     return true;
 }
 
 bool SaveData::setInt32(const char* key, int32_t value)
 {
-    char buf[16];
-    snprintf(buf, sizeof(buf), "%ld", static_cast<long>(value));
-    return setString(key, buf);
+    char text[16];
+    std::snprintf(text, sizeof(text), "%ld", static_cast<long>(value));
+    return setString(key, text);
 }
 
 bool SaveData::setUInt32(const char* key, uint32_t value)
 {
-    char buf[16];
-    snprintf(buf, sizeof(buf), "%lu", static_cast<unsigned long>(value));
-    return setString(key, buf);
+    char text[16];
+    std::snprintf(text, sizeof(text), "%lu", static_cast<unsigned long>(value));
+    return setString(key, text);
 }
 
 bool SaveData::setBool(const char* key, bool value)
@@ -328,92 +247,42 @@ bool SaveData::setBool(const char* key, bool value)
 
 bool SaveData::isDirty() const
 {
-    return dirty;
-}
-
-uint8_t SaveData::getEntryCount() const
-{
-    return entryCount;
-}
-
-uint16_t SaveData::getUsedBytes() const
-{
-    return usedBytes;
-}
-
-uint16_t SaveData::getFreeBytes() const
-{
-    return static_cast<uint16_t>(BUFFER_SIZE - usedBytes);
+    const SaveDataImpl* data = static_cast<const SaveDataImpl*>(impl);
+    return data != nullptr && data->dirty;
 }
 
 bool SaveData::load(Storage& storage, const char* gameId, const char* fileName)
 {
-    clear();
-    dirty = false;
+    SaveDataImpl* data = static_cast<SaveDataImpl*>(impl);
+    if (data == nullptr) return false;
 
-    if (!storage.isAvailable())
+    data->entries.clear();
+    data->dirty = false;
+    if (!storage.isAvailable()) return false;
+
+    LoadContext context{this, false};
+    const bool result = storage.readUserFile(gameId, fileName, &loadLineCallback, &context);
+    if (!result && context.failed)
     {
+        data->dirty = false;
         return false;
     }
-
-    LoadContext ctx{ this, false };
-    const bool ok = storage.readUserFile(gameId, fileName, &loadLineCallback, &ctx);
-
-    if (!ok)
-    {
-        if (ctx.failed)
-        {
-            dirty = false;
-            return false;
-        }
-
-        clear();
-        dirty = false;
-        return true;
-    }
-
-    dirty = false;
-    return true;
-}
-
-bool SaveData::writeLineHandler(std::string& line, void* arg)
-{
-    SaveData* self = static_cast<SaveData*>(arg);
-    if (self->saveCursor >= self->entryCount)
-    {
-        return false;
-    }
-
-    const Entry& entry = self->entries[self->saveCursor];
-    const char* key = self->buffer + entry.keyOffset;
-    const char* value = self->buffer + entry.valueOffset;
-
-    char lineBuf[BUFFER_SIZE + 2];
-    snprintf(lineBuf, sizeof(lineBuf), "%s=%s", key, value);
-    line.assign(lineBuf);
-
-    self->saveCursor++;
+    if (!result) data->entries.clear();
+    data->dirty = false;
     return true;
 }
 
 bool SaveData::save(Storage& storage, const char* gameId, const char* fileName)
 {
-    if (!dirty)
-    {
-        return true;
-    }
-    if (!storage.isAvailable())
-    {
-        return false;
-    }
+    SaveDataImpl* data = static_cast<SaveDataImpl*>(impl);
+    if (data == nullptr) return false;
+    if (!data->dirty) return true;
+    if (!storage.isAvailable()) return false;
 
-    saveCursor = 0;
-    const bool ok = storage.writeUserFile(gameId, fileName, &SaveData::writeLineHandler, this);
-    if (ok)
-    {
-        dirty = false;
-    }
-    return ok;
+    SaveContext context{data, 0};
+    const bool result = storage.writeUserFile(gameId, fileName, &writeLineCallback, &context);
+    if (result) data->dirty = false;
+    return result;
 }
 
 } // namespace PRUZEA

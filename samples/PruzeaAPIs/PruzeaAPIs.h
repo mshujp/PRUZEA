@@ -122,6 +122,4 @@ private:
     bool saveDataSaveOk = false;
     bool saveDataLoadOk = false;
     bool saveDataMatch = false;
-    uint8_t saveDataEntryCount = 0;
-    uint16_t saveDataUsedBytes = 0;
 };

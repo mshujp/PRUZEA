@@ -739,14 +739,13 @@ protected:
 // =====================================================================
 class SaveData {
 public:
-    static constexpr uint8_t MAX_ENTRIES = 16;
-    static constexpr uint16_t BUFFER_SIZE = 512;
-
     SaveData();
+    ~SaveData();
 
     void clear();
     bool load(Storage& storage, const char* gameId, const char* fileName);
     bool save(Storage& storage, const char* gameId, const char* fileName);
+
     bool contains(const char* key) const;
     bool remove(const char* key);
     bool getString(const char* key, char* outValue, size_t outSize, const char* defaultValue = "") const;
@@ -758,25 +757,13 @@ public:
     bool setUInt32(const char* key, uint32_t value);
     bool setBool(const char* key, bool value);
     bool isDirty() const;
-    uint8_t getEntryCount() const;
-    uint16_t getUsedBytes() const;
-    uint16_t getFreeBytes() const;
 
 private:
-    struct Entry {
-        uint16_t keyOffset;
-        uint16_t valueOffset;
-    };
-    Entry entries[MAX_ENTRIES];
-    char buffer[BUFFER_SIZE];
-    uint8_t entryCount = 0;
-    uint16_t usedBytes = 0;
-    bool dirty = false;
-    uint8_t saveCursor = 0;
-
-    int16_t findEntry(const char* key) const;
-    bool appendString(const char* text, uint16_t& offset);
-    static bool writeLineHandler(std::string& line, void* arg);
+    void* impl;
+    SaveData(const SaveData&) = delete;
+    SaveData& operator=(const SaveData&) = delete;
+    SaveData(SaveData&&) = delete;
+    SaveData& operator=(SaveData&&) = delete;
 };
 
 // --- =================================================================
