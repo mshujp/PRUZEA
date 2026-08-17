@@ -1,10 +1,16 @@
 #include "Platform.h"
 #include "PRUZEA.h"
 
+#include "pico/rand.h"
 #include "pico/stdlib.h"
 #include "pico/time.h"
 
 using namespace PRUZEA;
+
+uint32_t Platform::random32()
+{
+    return get_rand_32();
+}
 
 uint32_t Platform::getMsec()
 {

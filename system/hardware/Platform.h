@@ -12,6 +12,7 @@ namespace Platform {
 
 void sleepMsec(uint32_t msec);
 void sleepUsec(uint32_t usec);
+uint32_t random32();
 
 } // namespace
 } // namespace

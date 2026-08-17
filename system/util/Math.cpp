@@ -1,7 +1,6 @@
 #include "PRUZEA.h"
+#include "Platform.h"
 #include <cmath>
-#include "pico/stdlib.h"
-#include "pico/rand.h"
 
 namespace PRUZEA
 {
@@ -206,7 +205,7 @@ float radToDeg(float radians)
 int random(int max)
 {
     if (max <= 0) return 0;
-    uint64_t random_raw = get_rand_32();
+    uint64_t random_raw = Platform::random32();
     return static_cast<int>((random_raw * static_cast<uint32_t>(max)) >> 32);
 }
 
@@ -216,7 +215,7 @@ int random(int min, int max) {
 }
 
 float randomFloat() {
-    return static_cast<float>(get_rand_32()) / 0x1.0p32f;
+    return static_cast<float>(Platform::random32()) / 0x1.0p32f;
 }
 
 float randomFloat(float max) {
