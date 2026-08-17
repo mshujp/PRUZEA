@@ -135,7 +135,9 @@ constexpr PRUZEA::InputTouchConfig TOUCH_CONFIG {
 /// PWM
 constexpr PRUZEA::AudioPWM::Config AUDIO_CONFIG {
     // ===== GPIO Pins =====
-    .pwmPin = 29
+    .pwmPin = 29,
+    // Use BUZZER when driving a passive buzzer directly. Use DAC when routing PWM audio through an amplifier.
+    .mode = PRUZEA::AudioPWM::Mode::BUZZER
 };
 #elif PRUZEA_AUDIO_I2S
 /// I2S

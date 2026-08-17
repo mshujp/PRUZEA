@@ -15,15 +15,15 @@ constexpr PRUZEA::GraphicsILI9341::GraphicsILI9341SPIConfig GRAPHICS_CONFIG {
     .spiWriteFreq = 62500000,
 
     // ===== LCD Pins =====
-    .clkPin = 10,
-    .dataPin = 11,  // MOSI
-    .dcPin = 14,
-    .csPin = 9,
-    .resetPin = 15,
-    .backlightPin = 22,
+    .clkPin = -1,
+    .dataPin = -1,  // MOSI
+    .dcPin = -1,
+    .csPin = -1,
+    .resetPin = -1,
+    .backlightPin = -1,
 
     // ===== Display =====
-    .lcdRotate = 3,  // 1: Normal  3: Rotated 180 degrees
+    .lcdRotate = 1,  // 1: Normal  3: Rotated 180 degrees
 
     // ===== Buffer =====
     .maxBufferWidth = PRUZEA::Graphics::ILI9341_SCREEN_BUF_W_MAX_RP2040,
@@ -52,8 +52,8 @@ constexpr PRUZEA::GraphicsSSD1306::Config GRAPHICS_CONFIG {
     .i2cAddr = 0x3C,  // 0x3C or 0x3D, depending on the module
 
     // ===== OLED Pins =====
-    .sdaPin = 0,
-    .sclPin = 1,
+    .sdaPin = -1,
+    .sclPin = -1,
     .resetPin = -1,
 
     // ===== Display =====
@@ -85,9 +85,9 @@ constexpr PRUZEA::InputBase::ButtonMapping BUTTON_MAPPING {
 /// SNES controller
 constexpr PRUZEA::InputSnes::Config INPUT_CONFIG {
     // ===== GPIO Pins =====
-    .gpioCLK = 27,
-    .gpioLAT = 26,
-    .gpioData = 28,
+    .gpioCLK = -1,
+    .gpioLAT = -1,
+    .gpioData = -1,
 
     // ===== Extra Buttons =====
     .buttonMapping = BUTTON_MAPPING
@@ -133,15 +133,17 @@ constexpr PRUZEA::InputTouchConfig TOUCH_CONFIG {
 /// PWM speaker
 constexpr PRUZEA::AudioPWM::Config AUDIO_CONFIG {
     // ===== GPIO Pins =====
-    .pwmPin = 3
+    .pwmPin = -1,
+    // Use BUZZER when driving a passive buzzer directly. Use DAC when routing PWM audio through an amplifier.
+    .mode = PRUZEA::AudioPWM::Mode::BUZZER
 };
 #elif PRUZEA_AUDIO_I2S
 /// I2S amplifier
 constexpr PRUZEA::AudioI2S::Config AUDIO_CONFIG {
     // ===== I2S Pins =====
-    .bclkPin = 4,
+    .bclkPin = -1,
     // The LRCK pin must be assigned to the BCLK + 1 pin (GPIO 5).
-    .dataPin = 2
+    .dataPin = -1 
 };
 #endif
 
@@ -154,10 +156,10 @@ constexpr PRUZEA::StorageSD::Config STORAGE_CONFIG {
     .spiHost = 0,
 
     // ===== SD Card Pins =====
-    .misoPin = 16,
-    .sckPin = 18,
-    .mosiPin = 19,
-    .csPin = 13,
+    .misoPin = -1,
+    .sckPin = -1,
+    .mosiPin = -1,
+    .csPin = -1,
 
     // ===== Speed =====
     .baudRate = 12 * 1000 * 1000

@@ -5,7 +5,7 @@
 using namespace PRUZEA;
 
 AudioPWM::AudioPWM(const Config& config)
-    : pin(config.pwmPin)
+    : pin(config.pwmPin), mode(config.mode)
 {
 }
 
@@ -49,6 +49,7 @@ void AudioPWM::configurePcmMode()
     if (pcmMode) return;
 
     pwm_set_enabled(sliceNum, false);
+    gpio_set_function(pin, GPIO_FUNC_PWM);
     pwm_set_clkdiv(sliceNum, 1.0f);
     pwm_set_wrap(sliceNum, 255);
     pwm_set_gpio_level(pin, 128);
@@ -65,6 +66,8 @@ void AudioPWM::setToneFrequency(int frequency)
     }
 
     const uint32_t clk = clock_get_hz(clk_sys);
+
+    gpio_set_function(pin, GPIO_FUNC_PWM);
 
     float div = static_cast<float>(clk)
         / (static_cast<float>(frequency) * 65536.0f);
@@ -103,6 +106,7 @@ void AudioPWM::silence()
     if (pin >= 0)
     {
         pwm_set_gpio_level(pin, 0);
+        gpio_put(pin, 0);
     }
 }
 
@@ -152,14 +156,44 @@ bool AudioPWM::toneSamples(int startFrequency, int endFrequency, uint32_t totalS
     return true;
 }
 
+bool AudioPWM::pcmSamplesBuzzer(const int16_t* samples, uint32_t sampleCount)
+{
+    if (!started || samples == nullptr || sampleCount == 0) return true;
 
-bool AudioPWM::pcmSamples(const int16_t* samples, uint32_t sampleCount)
+    pwm_set_enabled(sliceNum, false);
+    gpio_set_function(pin, GPIO_FUNC_SIO);
+    gpio_set_dir(pin, GPIO_OUT);
+    gpio_put(pin, 0);
+    pcmMode = false;
+
+    uint64_t deadlineUsec = time_us_64();
+    uint32_t timingRemainder = 0;
+
+    const bool muted = getVolumeLevel() == 0;
+
+    for (uint32_t i = 0; i < sampleCount; ++i)
+    {
+        gpio_put(pin, !muted && samples[i] > 0);
+
+        timingRemainder += 1000000u;
+        deadlineUsec += timingRemainder / SAMPLE_RATE;
+        timingRemainder %= SAMPLE_RATE;
+
+        busy_wait_until(from_us_since_boot(deadlineUsec));
+    }
+
+    gpio_put(pin, 0);
+    pcmMode = false;
+    return true;
+}
+
+bool AudioPWM::pcmSamplesDAC(const int16_t* samples, uint32_t sampleCount)
 {
     if (!started || samples == nullptr || sampleCount == 0) return true;
 
     configurePcmMode();
 
-    float volumeScale = getVolumeLevel() > 0 ? 0.75f : 0.0f;
+    float volumeScale = getVolumeLevel() > 0 ? 1.00f : 0.0f;
     uint64_t deadlineUsec = time_us_64();
     uint32_t timingRemainder = 0;
 
@@ -178,4 +212,11 @@ bool AudioPWM::pcmSamples(const int16_t* samples, uint32_t sampleCount)
 
     pwm_set_gpio_level(pin, 128);
     return true;
+}
+
+bool AudioPWM::pcmSamples(const int16_t* samples, uint32_t sampleCount)
+{
+    return mode == Mode::BUZZER
+        ? pcmSamplesBuzzer(samples, sampleCount)
+        : pcmSamplesDAC(samples, sampleCount);
 }
