@@ -105,7 +105,9 @@ constexpr PRUZEA::InputTouchConfig TOUCH_CONFIG {
 /// PWM
 constexpr PRUZEA::AudioPWM::Config AUDIO_CONFIG {
     // ===== GPIO Pins =====
-    .pwmPin = -1
+    .pwmPin = -1,
+    // Use BUZZER when driving a passive buzzer directly. Use DAC when routing PWM audio through an amplifier.
+    .mode = PRUZEA::AudioPWM::Mode::BUZZER
 };
 #elif PRUZEA_AUDIO_I2S
 /// I2S
@@ -142,12 +144,12 @@ constexpr PRUZEA::PicoPlatform::BatteryConfig BATTERY_CONFIG {
     // ===== ADC =====
     .adcPin = 42,
     .adcChannel = 2,
-    .voltageCalibrationFactor = 1.067f,
+    .voltageCalibrationFactor = 1.01f,
     .voltageCalibrationOffset = 0.0f, 
     
     // ===== Voltage Thresholds =====
     .externalPowerThresholdVoltage = 2.0f,
-    .warningVoltage = 3.6f,
-    .criticalVoltage = 3.5f,
-    .cutoffVoltage = 3.4f
+    .warningVoltage = 3.5f,
+    .criticalVoltage = 3.4f,
+    .cutoffVoltage = 3.3f
 };

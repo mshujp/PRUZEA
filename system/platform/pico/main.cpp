@@ -50,6 +50,9 @@ namespace
 {
 
 constexpr size_t AUDIO_CORE_STACK_SIZE = 2 * 1024;
+constexpr uint8_t TEMPERATURE_ADC_CHANNEL = 8;
+constexpr uint8_t BATTERY_ADC_SAMPLE_COUNT = 16;
+constexpr float TEMPERATURE_SENSOR_VOLTAGE_27C = 0.706f;
 alignas(8) uint32_t audioCoreStack[AUDIO_CORE_STACK_SIZE / sizeof(uint32_t)];
 
 #if PRUZEA_DISPLAY_ILI9341
@@ -104,6 +107,7 @@ void initPlatformHardware()
         const uint batteryPin = static_cast<uint>(BATTERY_CONFIG.adcPin);
         gpio_disable_pulls(batteryPin);
         adc_init();
+        adc_set_temp_sensor_enabled(true);
         adc_gpio_init(batteryPin);
         gpio_set_dir(batteryPin, GPIO_IN);
     }
@@ -125,10 +129,39 @@ bool readBatteryVoltage(void*, float& voltage)
         return false;
     }
 
+    adc_select_input(TEMPERATURE_ADC_CHANNEL);
+    adc_read();
+
+    uint32_t temperatureRawTotal = 0;
+    for (uint8_t i = 0; i < BATTERY_ADC_SAMPLE_COUNT; ++i)
+    {
+        temperatureRawTotal += adc_read();
+    }
+
     adc_select_input(BATTERY_CONFIG.adcChannel);
-    const uint16_t raw = adc_read();
-    voltage = (raw * 3.3f / 4095.0f) * 2.0f * BATTERY_CONFIG.voltageCalibrationFactor + BATTERY_CONFIG.voltageCalibrationOffset;
-    printf("Battery: raw=%u voltage=%.3f\n", raw, voltage);
+    adc_read();
+
+    uint32_t batteryRawTotal = 0;
+    for (uint8_t i = 0; i < BATTERY_ADC_SAMPLE_COUNT; ++i)
+    {
+        batteryRawTotal += adc_read();
+    }
+
+    const float temperatureRaw = static_cast<float>(temperatureRawTotal) / BATTERY_ADC_SAMPLE_COUNT;
+    const float batteryRaw = static_cast<float>(batteryRawTotal) / BATTERY_ADC_SAMPLE_COUNT;
+    float estimatedVref = temperatureRaw > 0.0f
+        ? TEMPERATURE_SENSOR_VOLTAGE_27C * 4095.0f / temperatureRaw
+        : 3.3f;
+    if (estimatedVref < 2.0f || estimatedVref > 3.6f) estimatedVref = 3.3f;
+
+    voltage = (batteryRaw * estimatedVref / 4095.0f) * 2.0f *
+        BATTERY_CONFIG.voltageCalibrationFactor + BATTERY_CONFIG.voltageCalibrationOffset;
+    printf(
+        "Battery: raw=%.1f tempRaw=%.1f vref=%.3f voltage=%.3f\n",
+        static_cast<double>(batteryRaw),
+        static_cast<double>(temperatureRaw),
+        static_cast<double>(estimatedVref),
+        static_cast<double>(voltage));
     return true;
 }
 
