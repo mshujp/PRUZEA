@@ -8,6 +8,7 @@
 constexpr PRUZEA::GraphicsILI9341::GraphicsILI9341SPIConfig GRAPHICS_CONFIG {
     // ===== SPI =====
     .spiHost = 1,
+    //.spiWriteFreq = 75000000,
     .spiWriteFreq = 62500000,
 
     // ===== LCD Pins =====

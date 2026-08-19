@@ -8,6 +8,28 @@
 
 using namespace PRUZEA;
 
+namespace
+{
+template<typename T>
+bool intersects(const T& clip, int32_t left, int32_t top, int32_t right, int32_t bottom)
+{
+    return left < clip.right && right > clip.left && top < clip.bottom && bottom > clip.top;
+}
+
+template<typename T>
+bool clipFilledRect(const T& clip, int32_t& x, int32_t& y, int32_t& w, int32_t& h)
+{
+    const int32_t right = std::min<int32_t>(x + w, clip.right);
+    const int32_t bottom = std::min<int32_t>(y + h, clip.bottom);
+    x = std::max<int32_t>(x, clip.left);
+    y = std::max<int32_t>(y, clip.top);
+    w = right - x;
+    h = bottom - y;
+    return w > 0 && h > 0;
+}
+
+}
+
 GraphicsILI9341::GraphicsILI9341(const GraphicsILI9341SPIConfig& config)
     : lgfxContext(std::make_unique<LGFXContextSPI>(config)),
         driverName("ILI9341 SPI"),
@@ -77,6 +99,7 @@ bool GraphicsILI9341::setLogicalScreenSize(uint16_t _logicalScreenW, uint16_t _l
     logicalScreenW = _logicalScreenW;
     logicalScreenH = _logicalScreenH;
     setTransformInfo();
+    resetClipRect();
 
     return canvas.getBuffer() != nullptr;
 }
@@ -126,13 +149,26 @@ void GraphicsILI9341::fillScreen(Graphics::Color color)
 
 void GraphicsILI9341::drawPixel(int16_t x, int16_t y, Graphics::Color color)
 {
-    canvas.drawPixel(toScreenX(x), toScreenY(y), color);
+    const int32_t screenX = toScreenX(x);
+    const int32_t screenY = toScreenY(y);
+    const ClipBounds& clip = cachedClip;
+    if (!intersects(clip, screenX, screenY, screenX + 1, screenY + 1)) return;
+
+    canvas.drawPixel(screenX, screenY, color);
     screenDirty = true;
 }
 
 void GraphicsILI9341::drawLine(int16_t x1, int16_t y1, int16_t x2, int16_t y2, Graphics::Color color)
 {
-    canvas.drawLine(toScreenX(x1), toScreenY(y1), toScreenX(x2), toScreenY(y2), color);
+    const int32_t screenX1 = toScreenX(x1);
+    const int32_t screenY1 = toScreenY(y1);
+    const int32_t screenX2 = toScreenX(x2);
+    const int32_t screenY2 = toScreenY(y2);
+    const ClipBounds& clip = cachedClip;
+    if (!intersects(clip, std::min(screenX1, screenX2), std::min(screenY1, screenY2),
+                    std::max(screenX1, screenX2) + 1, std::max(screenY1, screenY2) + 1)) return;
+
+    canvas.drawLine(screenX1, screenY1, screenX2, screenY2, color);
     screenDirty = true;
 }
 
@@ -141,55 +177,107 @@ void GraphicsILI9341::drawWideLine(int16_t x0, int16_t y0, int16_t x1, int16_t y
     if (thickness == 0) return;
 
     const float radius = toScreenScale(static_cast<float>(thickness)) * 0.5f;
-    canvas.drawWideLine(toScreenX(x0), toScreenY(y0), toScreenX(x1), toScreenY(y1), radius, color);
+    const int32_t screenX0 = toScreenX(x0);
+    const int32_t screenY0 = toScreenY(y0);
+    const int32_t screenX1 = toScreenX(x1);
+    const int32_t screenY1 = toScreenY(y1);
+    const int32_t margin = static_cast<int32_t>(radius + 1.0f);
+    const ClipBounds& clip = cachedClip;
+    if (!intersects(clip, std::min(screenX0, screenX1) - margin, std::min(screenY0, screenY1) - margin,
+                    std::max(screenX0, screenX1) + margin + 1, std::max(screenY0, screenY1) + margin + 1)) return;
+
+    canvas.drawWideLine(screenX0, screenY0, screenX1, screenY1, radius, color);
     screenDirty = true;
 }
 
 void GraphicsILI9341::drawBezier(int16_t x0, int16_t y0, int16_t x1, int16_t y1, int16_t x2, int16_t y2, Graphics::Color color)
 {
-    canvas.drawBezier(toScreenX(x0), toScreenY(y0), toScreenX(x1), toScreenY(y1), toScreenX(x2), toScreenY(y2), color);
+    const int32_t sx0 = toScreenX(x0), sy0 = toScreenY(y0);
+    const int32_t sx1 = toScreenX(x1), sy1 = toScreenY(y1);
+    const int32_t sx2 = toScreenX(x2), sy2 = toScreenY(y2);
+    if (!intersects(cachedClip, std::min({sx0, sx1, sx2}), std::min({sy0, sy1, sy2}),
+                    std::max({sx0, sx1, sx2}) + 1, std::max({sy0, sy1, sy2}) + 1)) return;
+
+    canvas.drawBezier(sx0, sy0, sx1, sy1, sx2, sy2, color);
     screenDirty = true;
 }
 
 void GraphicsILI9341::drawBezier(int16_t x0, int16_t y0, int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3, Graphics::Color color)
 {
-    canvas.drawBezier(toScreenX(x0), toScreenY(y0), toScreenX(x1), toScreenY(y1), toScreenX(x2), toScreenY(y2), toScreenX(x3), toScreenY(y3), color);
+    const int32_t sx0 = toScreenX(x0), sy0 = toScreenY(y0);
+    const int32_t sx1 = toScreenX(x1), sy1 = toScreenY(y1);
+    const int32_t sx2 = toScreenX(x2), sy2 = toScreenY(y2);
+    const int32_t sx3 = toScreenX(x3), sy3 = toScreenY(y3);
+    if (!intersects(cachedClip, std::min({sx0, sx1, sx2, sx3}), std::min({sy0, sy1, sy2, sy3}),
+                    std::max({sx0, sx1, sx2, sx3}) + 1, std::max({sy0, sy1, sy2, sy3}) + 1)) return;
+
+    canvas.drawBezier(sx0, sy0, sx1, sy1, sx2, sy2, sx3, sy3, color);
     screenDirty = true;
 }
 
 void GraphicsILI9341::drawTriangle(int16_t x0, int16_t y0, int16_t x1, int16_t y1, int16_t x2, int16_t y2, Graphics::Color color)
 {
-    canvas.drawTriangle(toScreenX(x0), toScreenY(y0), toScreenX(x1), toScreenY(y1), toScreenX(x2), toScreenY(y2), color);
+    const int32_t sx0 = toScreenX(x0), sy0 = toScreenY(y0);
+    const int32_t sx1 = toScreenX(x1), sy1 = toScreenY(y1);
+    const int32_t sx2 = toScreenX(x2), sy2 = toScreenY(y2);
+    const ClipBounds& clip = cachedClip;
+    if (!intersects(clip, std::min({sx0, sx1, sx2}), std::min({sy0, sy1, sy2}),
+                    std::max({sx0, sx1, sx2}) + 1, std::max({sy0, sy1, sy2}) + 1)) return;
+
+    canvas.drawTriangle(sx0, sy0, sx1, sy1, sx2, sy2, color);
     screenDirty = true;
 }
 
 void GraphicsILI9341::fillTriangle(int16_t x0, int16_t y0, int16_t x1, int16_t y1, int16_t x2, int16_t y2, Graphics::Color color)
 {
-    canvas.fillTriangle(toScreenX(x0), toScreenY(y0), toScreenX(x1), toScreenY(y1), toScreenX(x2), toScreenY(y2), color);
+    const int32_t sx0 = toScreenX(x0), sy0 = toScreenY(y0);
+    const int32_t sx1 = toScreenX(x1), sy1 = toScreenY(y1);
+    const int32_t sx2 = toScreenX(x2), sy2 = toScreenY(y2);
+    const ClipBounds& clip = cachedClip;
+    if (!intersects(clip, std::min({sx0, sx1, sx2}), std::min({sy0, sy1, sy2}),
+                    std::max({sx0, sx1, sx2}) + 1, std::max({sy0, sy1, sy2}) + 1)) return;
+
+    canvas.fillTriangle(sx0, sy0, sx1, sy1, sx2, sy2, color);
     screenDirty = true;
 }
 
 void GraphicsILI9341::drawRect(int16_t x, int16_t y, uint16_t w, uint16_t h, Graphics::Color color)
 {
-    canvas.drawRect(toScreenX(x), toScreenY(y), toScreenW(w), toScreenH(h), color);
+    const int32_t screenX = toScreenX(x), screenY = toScreenY(y);
+    const int32_t screenW = toScreenW(w), screenH = toScreenH(h);
+    if (!intersects(cachedClip, screenX, screenY, screenX + screenW, screenY + screenH)) return;
+
+    canvas.drawRect(screenX, screenY, screenW, screenH, color);
     screenDirty = true;
 }
 
 void GraphicsILI9341::drawRoundRect(int16_t x, int16_t y, uint16_t w, uint16_t h, uint16_t radius, Graphics::Color color)
 {
-    canvas.drawRoundRect(toScreenX(x), toScreenY(y), toScreenW(w), toScreenH(h), toScreenW(radius), color);
+    const int32_t screenX = toScreenX(x), screenY = toScreenY(y);
+    const int32_t screenW = toScreenW(w), screenH = toScreenH(h);
+    if (!intersects(cachedClip, screenX, screenY, screenX + screenW, screenY + screenH)) return;
+
+    canvas.drawRoundRect(screenX, screenY, screenW, screenH, toScreenW(radius), color);
     screenDirty = true;
 }
 
 void GraphicsILI9341::fillRect(int16_t x, int16_t y, uint16_t w, uint16_t h, Graphics::Color color)
 {
-    canvas.fillRect(toScreenX(x), toScreenY(y), toScreenW(w), toScreenH(h), color);
+    int32_t screenX = toScreenX(x), screenY = toScreenY(y);
+    int32_t screenW = toScreenW(w), screenH = toScreenH(h);
+    if (!clipFilledRect(cachedClip, screenX, screenY, screenW, screenH)) return;
+
+    canvas.fillRect(screenX, screenY, screenW, screenH, color);
     screenDirty = true;
 }
 
 void GraphicsILI9341::fillRectAlpha(int16_t x, int16_t y, uint16_t w, uint16_t h, uint8_t alpha, Graphics::Color color)
 {
-    canvas.fillRectAlpha(toScreenX(x), toScreenY(y), toScreenW(w), toScreenH(h), alpha, color);
+    int32_t screenX = toScreenX(x), screenY = toScreenY(y);
+    int32_t screenW = toScreenW(w), screenH = toScreenH(h);
+    if (!clipFilledRect(cachedClip, screenX, screenY, screenW, screenH)) return;
+
+    canvas.fillRectAlpha(screenX, screenY, screenW, screenH, alpha, color);
     screenDirty = true;
 }
 
@@ -208,38 +296,63 @@ void GraphicsILI9341::fillRectGradient(int16_t x, int16_t y, uint16_t w, uint16_
  
 void GraphicsILI9341::fillRoundRect(int16_t x, int16_t y, uint16_t w, uint16_t h, int16_t radius, Graphics::Color color)
 {
-    canvas.fillRoundRect(toScreenX(x), toScreenY(y), toScreenW(w), toScreenH(h), toScreenW(radius), color);
+    const int32_t screenX = toScreenX(x), screenY = toScreenY(y);
+    const int32_t screenW = toScreenW(w), screenH = toScreenH(h);
+    if (!intersects(cachedClip, screenX, screenY, screenX + screenW, screenY + screenH)) return;
+
+    canvas.fillRoundRect(screenX, screenY, screenW, screenH, toScreenW(radius), color);
     screenDirty = true;
 }
 
 void GraphicsILI9341::drawCircle(int16_t x, int16_t y, uint16_t r, Graphics::Color color)
 {
-    canvas.drawCircle(toScreenX(x), toScreenY(y), toScreenW(r), color);
+    const int32_t screenX = toScreenX(x), screenY = toScreenY(y), screenR = toScreenW(r);
+    if (!intersects(cachedClip, screenX - screenR, screenY - screenR,
+                    screenX + screenR + 1, screenY + screenR + 1)) return;
+
+    canvas.drawCircle(screenX, screenY, screenR, color);
     screenDirty = true;
 }
 
 void GraphicsILI9341::drawCircle(int16_t x, int16_t y, uint16_t rx, uint16_t ry, Graphics::Color color)
 {
-    canvas.drawEllipse(toScreenX(x), toScreenY(y), toScreenW(rx), toScreenH(ry), color);
+    const int32_t screenX = toScreenX(x), screenY = toScreenY(y);
+    const int32_t screenRx = toScreenW(rx), screenRy = toScreenH(ry);
+    if (!intersects(cachedClip, screenX - screenRx, screenY - screenRy,
+                    screenX + screenRx + 1, screenY + screenRy + 1)) return;
+
+    canvas.drawEllipse(screenX, screenY, screenRx, screenRy, color);
     screenDirty = true;
 }
 
 void GraphicsILI9341::fillCircle(int16_t x, int16_t y, uint16_t r, Graphics::Color color)
 {
-    canvas.fillCircle(toScreenX(x), toScreenY(y), toScreenW(r), color);
+    const int32_t screenX = toScreenX(x), screenY = toScreenY(y), screenR = toScreenW(r);
+    if (!intersects(cachedClip, screenX - screenR, screenY - screenR,
+                    screenX + screenR + 1, screenY + screenR + 1)) return;
+
+    canvas.fillCircle(screenX, screenY, screenR, color);
     screenDirty = true;
 }
 
 void GraphicsILI9341::fillCircle(int16_t x, int16_t y, uint16_t rx, uint16_t ry, Graphics::Color color)
 {
-    canvas.fillEllipse(toScreenX(x), toScreenY(y), toScreenW(rx), toScreenH(ry), color);
+    const int32_t screenX = toScreenX(x), screenY = toScreenY(y);
+    const int32_t screenRx = toScreenW(rx), screenRy = toScreenH(ry);
+    if (!intersects(cachedClip, screenX - screenRx, screenY - screenRy,
+                    screenX + screenRx + 1, screenY + screenRy + 1)) return;
+
+    canvas.fillEllipse(screenX, screenY, screenRx, screenRy, color);
     screenDirty = true;
 }
 
 void GraphicsILI9341::drawArc(int16_t x, int16_t y, uint16_t r, float angle0, float angle1, Graphics::Color color)
 {
     const int32_t r1 = toScreenW(r);
-    canvas.drawArc(toScreenX(x), toScreenY(y), 0, r1, Math::radToDeg(angle0), Math::radToDeg(angle1), color);
+    const int32_t screenX = toScreenX(x), screenY = toScreenY(y);
+    if (!intersects(cachedClip, screenX - r1, screenY - r1, screenX + r1 + 1, screenY + r1 + 1)) return;
+
+    canvas.drawArc(screenX, screenY, 0, r1, Math::radToDeg(angle0), Math::radToDeg(angle1), color);
     screenDirty = true;
 }
 
@@ -250,7 +363,10 @@ void GraphicsILI9341::drawArc(int16_t x, int16_t y, uint16_t r, uint8_t width, f
     int32_t r0 = r1 - w;
     if (r0 < 0) r0 = 0;
 
-    canvas.drawArc(toScreenX(x), toScreenY(y), r0, r1, Math::radToDeg(angle0), Math::radToDeg(angle1), color);
+    const int32_t screenX = toScreenX(x), screenY = toScreenY(y);
+    if (!intersects(cachedClip, screenX - r1, screenY - r1, screenX + r1 + 1, screenY + r1 + 1)) return;
+
+    canvas.drawArc(screenX, screenY, r0, r1, Math::radToDeg(angle0), Math::radToDeg(angle1), color);
     screenDirty = true;
 }
 
@@ -258,7 +374,11 @@ void GraphicsILI9341::drawArc(int16_t x, int16_t y, uint16_t rx, uint16_t ry, fl
 {
     const int32_t r1x = toScreenW(rx);
     const int32_t r1y = toScreenH(ry);
-    canvas.drawEllipseArc(toScreenX(x), toScreenY(y), 0, r1x, 0, r1y, Math::radToDeg(angle0), Math::radToDeg(angle1), color);
+    const int32_t screenX = toScreenX(x), screenY = toScreenY(y);
+    if (!intersects(cachedClip, screenX - r1x, screenY - r1y,
+                    screenX + r1x + 1, screenY + r1y + 1)) return;
+
+    canvas.drawEllipseArc(screenX, screenY, 0, r1x, 0, r1y, Math::radToDeg(angle0), Math::radToDeg(angle1), color);
     screenDirty = true;
 }
 
@@ -273,14 +393,21 @@ void GraphicsILI9341::drawArc(int16_t x, int16_t y, uint16_t rx, uint16_t ry, ui
     if (r0x < 0) r0x = 0;
     if (r0y < 0) r0y = 0;
 
-    canvas.drawEllipseArc(toScreenX(x), toScreenY(y), r0x, r1x, r0y, r1y, Math::radToDeg(angle0), Math::radToDeg(angle1), color);
+    const int32_t screenX = toScreenX(x), screenY = toScreenY(y);
+    if (!intersects(cachedClip, screenX - r1x, screenY - r1y,
+                    screenX + r1x + 1, screenY + r1y + 1)) return;
+
+    canvas.drawEllipseArc(screenX, screenY, r0x, r1x, r0y, r1y, Math::radToDeg(angle0), Math::radToDeg(angle1), color);
     screenDirty = true;
 }
 
 void GraphicsILI9341::fillArc(int16_t x, int16_t y, uint16_t r, float angle0, float angle1, Graphics::Color color)
 {
     const int32_t r1 = toScreenW(r);
-    canvas.fillArc(toScreenX(x), toScreenY(y), 0, r1, Math::radToDeg(angle0), Math::radToDeg(angle1), color);
+    const int32_t screenX = toScreenX(x), screenY = toScreenY(y);
+    if (!intersects(cachedClip, screenX - r1, screenY - r1, screenX + r1 + 1, screenY + r1 + 1)) return;
+
+    canvas.fillArc(screenX, screenY, 0, r1, Math::radToDeg(angle0), Math::radToDeg(angle1), color);
     screenDirty = true;
 }
 
@@ -291,7 +418,10 @@ void GraphicsILI9341::fillArc(int16_t x, int16_t y, uint16_t r, uint8_t width, f
     int32_t r0 = r1 - w;
     if (r0 < 0) r0 = 0;
 
-    canvas.fillArc(toScreenX(x), toScreenY(y), r0, r1, Math::radToDeg(angle0), Math::radToDeg(angle1), color);
+    const int32_t screenX = toScreenX(x), screenY = toScreenY(y);
+    if (!intersects(cachedClip, screenX - r1, screenY - r1, screenX + r1 + 1, screenY + r1 + 1)) return;
+
+    canvas.fillArc(screenX, screenY, r0, r1, Math::radToDeg(angle0), Math::radToDeg(angle1), color);
     screenDirty = true;
 }
 
@@ -299,7 +429,11 @@ void GraphicsILI9341::fillArc(int16_t x, int16_t y, uint16_t rx, uint16_t ry, fl
 {
     const int32_t r1x = toScreenW(rx);
     const int32_t r1y = toScreenH(ry);
-    canvas.fillEllipseArc(toScreenX(x), toScreenY(y), 0, r1x, 0, r1y, Math::radToDeg(angle0), Math::radToDeg(angle1), color);
+    const int32_t screenX = toScreenX(x), screenY = toScreenY(y);
+    if (!intersects(cachedClip, screenX - r1x, screenY - r1y,
+                    screenX + r1x + 1, screenY + r1y + 1)) return;
+
+    canvas.fillEllipseArc(screenX, screenY, 0, r1x, 0, r1y, Math::radToDeg(angle0), Math::radToDeg(angle1), color);
     screenDirty = true;
 }
 
@@ -314,7 +448,11 @@ void GraphicsILI9341::fillArc(int16_t x, int16_t y, uint16_t rx, uint16_t ry, ui
     if (r0x < 0) r0x = 0;
     if (r0y < 0) r0y = 0;
 
-    canvas.fillEllipseArc(toScreenX(x), toScreenY(y), r0x, r1x, r0y, r1y, Math::radToDeg(angle0), Math::radToDeg(angle1), color);
+    const int32_t screenX = toScreenX(x), screenY = toScreenY(y);
+    if (!intersects(cachedClip, screenX - r1x, screenY - r1y,
+                    screenX + r1x + 1, screenY + r1y + 1)) return;
+
+    canvas.fillEllipseArc(screenX, screenY, r0x, r1x, r0y, r1y, Math::radToDeg(angle0), Math::radToDeg(angle1), color);
     screenDirty = true;
 }
 
@@ -459,24 +597,27 @@ void GraphicsILI9341::drawImage(const Image& image, int16_t x, int16_t y)
 void GraphicsILI9341::setClipRect(int16_t x, int16_t y, uint16_t w, uint16_t h)
 {
     canvas.setClipRect(x, y, w, h);
+    cachedClip.left = std::max<int32_t>(0, x);
+    cachedClip.top = std::max<int32_t>(0, y);
+    cachedClip.right = std::min<int32_t>(canvas.width(), static_cast<int32_t>(x) + w);
+    cachedClip.bottom = std::min<int32_t>(canvas.height(), static_cast<int32_t>(y) + h);
 }
 
 void GraphicsILI9341::getClipRect(int16_t& x, int16_t& y, uint16_t& w, uint16_t& h)
 {
-    int32_t cx;
-    int32_t cy;
-    int32_t cw;
-    int32_t ch;
-    canvas.getClipRect(&cx, &cy, &cw, &ch);
-    x = static_cast<int16_t>(cx);
-    y = static_cast<int16_t>(cy);
-    w = static_cast<int16_t>(cw);
-    h = static_cast<int16_t>(ch);
+    x = static_cast<int16_t>(cachedClip.left);
+    y = static_cast<int16_t>(cachedClip.top);
+    w = static_cast<uint16_t>(std::max<int32_t>(0, cachedClip.right - cachedClip.left));
+    h = static_cast<uint16_t>(std::max<int32_t>(0, cachedClip.bottom - cachedClip.top));
 }
 
 void GraphicsILI9341::resetClipRect()
 {
     canvas.clearClipRect();
+    cachedClip.left = 0;
+    cachedClip.top = 0;
+    cachedClip.right = canvas.width();
+    cachedClip.bottom = canvas.height();
 }
 
 void GraphicsILI9341::push()

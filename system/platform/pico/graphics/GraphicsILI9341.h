@@ -20,6 +20,15 @@ private:
  
     LGFX_Sprite canvas;
 
+    struct ClipBounds
+    {
+        int32_t left = 0;
+        int32_t top = 0;
+        int32_t right = 0;
+        int32_t bottom = 0;
+    };
+    ClipBounds cachedClip;
+
     uint8_t scale = 1;
     void setTransformInfo();
   
