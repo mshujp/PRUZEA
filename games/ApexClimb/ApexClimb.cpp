@@ -507,6 +507,7 @@ void ApexClimb::onInit(Storage& storage)
     loadRanking(storage);
     saveDirty = false;
     mode = MODE_TITLE;
+    prepareCourse();
     prepareScenery();
     resetToStart();
 }
@@ -654,6 +655,7 @@ Game::GameState ApexClimb::onUpdate(Input& input, Audio& audio,
                 freePractice = false;
                 currentCourse = selectedCourse;
                 bestMsec = rankings[currentCourse][0];
+                prepareCourse();
                 prepareScenery();
                 resetToStart();
                 startReady();
@@ -907,17 +909,21 @@ void ApexClimb::updateDriving(Input& input, Audio& audio,
         targetSteering = readSteering(input);
         steering = Math::moveTowards(steering, targetSteering,
                                      tuning.steeringResponse * deltaSec);
-        throttleInput = targetThrottle;
     } else {
         if (input.pressed(Input::LEFT)) targetSteering -= 1.0f;
         if (input.pressed(Input::RIGHT)) targetSteering += 1.0f;
-        if (input.pressed(Input::Y) || input.pressed(Input::UP)) targetThrottle = 1.0f;
 
         const float steerRate = 1.0f / (tuning.digitalFullSteerTime > 0.01f ? tuning.digitalFullSteerTime : 0.01f);
         digitalSteering = Math::moveTowards(digitalSteering, targetSteering,
                                             steerRate * deltaSec);
         steering = digitalSteering;
+    }
+    if (input.pressed(Input::Y) || input.pressed(Input::UP))
+        targetThrottle = 1.0f;
 
+    if (input.hasAnalogSticks()) {
+        throttleInput = targetThrottle;
+    } else {
         const float response = targetThrottle > throttleInput
             ? tuning.digitalFullThrottleTime : tuning.digitalThrottleReleaseTime;
         throttleInput = Math::moveTowards(throttleInput, targetThrottle,
@@ -1716,15 +1722,80 @@ ApexClimb::Point ApexClimb::getCourseTangent(float t) const
     return { b.x - a.x, b.y - a.y };
 }
 
+void ApexClimb::prepareCourse()
+{
+    for (uint16_t i = 0; i <= TRACK_SAMPLES; ++i) {
+        preparedCourse.samples[i].center = getCoursePoint(static_cast<float>(i) / TRACK_SAMPLES);
+    }
+
+    for (uint16_t i = 0; i <= TRACK_SAMPLES; ++i) {
+        const uint16_t previous = i > 0 ? i - 1 : i;
+        const uint16_t next = i < TRACK_SAMPLES ? i + 1 : i;
+        const Point& center = preparedCourse.samples[i].center;
+
+        float inX = center.x - preparedCourse.samples[previous].center.x;
+        float inY = center.y - preparedCourse.samples[previous].center.y;
+        float outX = preparedCourse.samples[next].center.x - center.x;
+        float outY = preparedCourse.samples[next].center.y - center.y;
+        float inLength = std::sqrt(inX * inX + inY * inY);
+        float outLength = std::sqrt(outX * outX + outY * outY);
+
+        if (inLength <= 0.001f && outLength > 0.001f) {
+            inX = outX;
+            inY = outY;
+            inLength = outLength;
+        }
+        if (outLength <= 0.001f && inLength > 0.001f) {
+            outX = inX;
+            outY = inY;
+            outLength = inLength;
+        }
+
+        TrackSample& sample = preparedCourse.samples[i];
+        if (inLength <= 0.001f || outLength <= 0.001f) {
+            sample.miter = {0.0f, 1.0f};
+            sample.miterScale = 1.0f;
+            continue;
+        }
+
+        inX /= inLength;
+        inY /= inLength;
+        outX /= outLength;
+        outY /= outLength;
+
+        const float previousNormalX = -inY;
+        const float previousNormalY = inX;
+        const float nextNormalX = -outY;
+        const float nextNormalY = outX;
+        float miterX = previousNormalX + nextNormalX;
+        float miterY = previousNormalY + nextNormalY;
+        const float miterLength = std::sqrt(miterX * miterX + miterY * miterY);
+
+        if (miterLength > 0.001f) {
+            miterX /= miterLength;
+            miterY /= miterLength;
+        } else {
+            miterX = nextNormalX;
+            miterY = nextNormalY;
+        }
+
+        float denominator = miterX * nextNormalX + miterY * nextNormalY;
+        if (std::fabs(denominator) < 0.30f) denominator = denominator < 0.0f ? -0.30f : 0.30f;
+
+        sample.miter = {miterX, miterY};
+        sample.miterScale = Math::clamp(std::fabs(1.0f / denominator), 0.0f, 1.40f);
+    }
+
+}
+
 float ApexClimb::getTrackProgress(float x, float y) const
 {
     float bestDistance = 1.0e30f;
     float bestT = 0.0f;
 
-    Point previous = getCoursePoint(0.0f);
+    Point previous = preparedCourse.samples[0].center;
     for (uint16_t i = 1; i <= TRACK_SAMPLES; ++i) {
-        const float t = static_cast<float>(i) / TRACK_SAMPLES;
-        const Point current = getCoursePoint(t);
+        const Point& current = preparedCourse.samples[i].center;
 
         const float dx = current.x - previous.x;
         const float dy = current.y - previous.y;
@@ -1752,11 +1823,10 @@ float ApexClimb::getTrackProgress(float x, float y) const
 float ApexClimb::distanceToTrack(float x, float y) const
 {
     float best = 1.0e30f;
-    Point previous = getCoursePoint(0.0f);
+    Point previous = preparedCourse.samples[0].center;
 
     for (uint16_t i = 1; i <= TRACK_SAMPLES; ++i) {
-        const Point current =
-            getCoursePoint(static_cast<float>(i) / TRACK_SAMPLES);
+        const Point& current = preparedCourse.samples[i].center;
         best = std::fmin(best, distanceToSegmentSquared(x, y, previous, current));
         previous = current;
     }
@@ -2131,91 +2201,26 @@ void ApexClimb::drawRoad(Graphics& g) const
     const float viewRight = viewLeft + VIEW_W;
     const float viewBottom = viewTop + VIEW_H;
 
-    Point samples[TRACK_SAMPLES + 1];
-    Point miters[TRACK_SAMPLES + 1];
-    float miterScale[TRACK_SAMPLES + 1];
-
-    for (uint16_t i = 0; i <= TRACK_SAMPLES; ++i) {
-        samples[i] = getCoursePoint(
-            static_cast<float>(i) / TRACK_SAMPLES);
-    }
-
-    for (uint16_t i = 0; i <= TRACK_SAMPLES; ++i) {
-        const uint16_t prev = i > 0 ? i - 1 : i;
-        const uint16_t next = i < TRACK_SAMPLES ? i + 1 : i;
-
-        float inX = samples[i].x - samples[prev].x;
-        float inY = samples[i].y - samples[prev].y;
-        float outX = samples[next].x - samples[i].x;
-        float outY = samples[next].y - samples[i].y;
-
-        float inLen = std::sqrt(inX * inX + inY * inY);
-        float outLen = std::sqrt(outX * outX + outY * outY);
-
-        if (inLen <= 0.001f && outLen > 0.001f) {
-            inX = outX; inY = outY; inLen = outLen;
-        }
-        if (outLen <= 0.001f && inLen > 0.001f) {
-            outX = inX; outY = inY; outLen = inLen;
-        }
-
-        if (inLen <= 0.001f || outLen <= 0.001f) {
-            miters[i] = {0.0f, 1.0f};
-            miterScale[i] = 1.0f;
-            continue;
-        }
-
-        inX /= inLen; inY /= inLen;
-        outX /= outLen; outY /= outLen;
-
-        const float n0x = -inY;
-        const float n0y =  inX;
-        const float n1x = -outY;
-        const float n1y =  outX;
-
-        float mx = n0x + n1x;
-        float my = n0y + n1y;
-        const float mlen = std::sqrt(mx * mx + my * my);
-
-        if (mlen > 0.001f) {
-            mx /= mlen;
-            my /= mlen;
-        } else {
-            mx = n1x;
-            my = n1y;
-        }
-
-        float denom = mx * n1x + my * n1y;
-        if (std::fabs(denom) < 0.30f) {
-            denom = denom < 0.0f ? -0.30f : 0.30f;
-        }
-
-        float scale = 1.0f / denom;
-        if (scale < 0.0f) scale = -scale;
-        if (scale > 1.40f) scale = 1.40f;
-
-        miters[i] = {mx, my};
-        miterScale[i] = scale;
-    }
-
     auto drawRibbon = [&](float halfWidth, Graphics::Color color)
     {
         for (uint16_t i = 0; i < TRACK_SAMPLES; ++i) {
-            const Point& a = samples[i];
-            const Point& b = samples[i + 1];
+            const TrackSample& sampleA = preparedCourse.samples[i];
+            const TrackSample& sampleB = preparedCourse.samples[i + 1];
+            const Point& a = sampleA.center;
+            const Point& b = sampleB.center;
 
-            const float aw = halfWidth * miterScale[i];
-            const float bw = halfWidth * miterScale[i + 1];
+            const float aw = halfWidth * sampleA.miterScale;
+            const float bw = halfWidth * sampleB.miterScale;
 
-            const int16_t aLx = static_cast<int16_t>(a.x + miters[i].x * aw);
-            const int16_t aLy = static_cast<int16_t>(a.y + miters[i].y * aw);
-            const int16_t aRx = static_cast<int16_t>(a.x - miters[i].x * aw);
-            const int16_t aRy = static_cast<int16_t>(a.y - miters[i].y * aw);
+            const int16_t aLx = static_cast<int16_t>(a.x + sampleA.miter.x * aw);
+            const int16_t aLy = static_cast<int16_t>(a.y + sampleA.miter.y * aw);
+            const int16_t aRx = static_cast<int16_t>(a.x - sampleA.miter.x * aw);
+            const int16_t aRy = static_cast<int16_t>(a.y - sampleA.miter.y * aw);
 
-            const int16_t bLx = static_cast<int16_t>(b.x + miters[i + 1].x * bw);
-            const int16_t bLy = static_cast<int16_t>(b.y + miters[i + 1].y * bw);
-            const int16_t bRx = static_cast<int16_t>(b.x - miters[i + 1].x * bw);
-            const int16_t bRy = static_cast<int16_t>(b.y - miters[i + 1].y * bw);
+            const int16_t bLx = static_cast<int16_t>(b.x + sampleB.miter.x * bw);
+            const int16_t bLy = static_cast<int16_t>(b.y + sampleB.miter.y * bw);
+            const int16_t bRx = static_cast<int16_t>(b.x - sampleB.miter.x * bw);
+            const int16_t bRy = static_cast<int16_t>(b.y - sampleB.miter.y * bw);
 
             // Cull the whole quad (two triangles) when all four vertices
             // are on the same outside side of the camera rectangle.
@@ -2238,7 +2243,7 @@ void ApexClimb::drawRoad(Graphics& g) const
     drawRibbon(ROAD_HALF_WIDTH, ROAD);
 
     for (uint16_t i = 8; i < 50 && i <= TRACK_SAMPLES; i += 7) {
-        const Point& p = samples[i];
+        const Point& p = preparedCourse.samples[i].center;
         if (p.x < viewLeft || p.x > viewRight ||
             p.y < viewTop || p.y > viewBottom) {
             continue;

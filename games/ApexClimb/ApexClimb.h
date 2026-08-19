@@ -137,11 +137,24 @@ private:
     static constexpr uint16_t TREE_COUNT_MAX = 82;
     static constexpr uint16_t ROCK_COUNT = 42;
 
+    struct TrackSample
+    {
+        Point center;
+        Point miter;
+        float miterScale = 1.0f;
+    };
+
+    struct PreparedCourse
+    {
+        TrackSample samples[TRACK_SAMPLES + 1] = {};
+    };
+
     Mode mode = MODE_TITLE;
     PRUZEA::SaveData saveData;
     uint8_t selectedCourse = 0;
     uint8_t currentCourse = 0;
     bool freePractice = false;
+    PreparedCourse preparedCourse;
 
     bool sceneryPrepared = false;
     bool susukiEnabled[SUSUKI_COUNT] = {};
@@ -234,7 +247,6 @@ private:
     uint8_t insertRanking(uint32_t msec);
     uint8_t insertDriftRanking(uint32_t score);
     void finishDriftScore(uint32_t now);
-
     Point getCoursePoint(float t) const;
     Point getCourseTangent(float t) const;
     float getTrackProgress(float x, float y) const;
@@ -242,6 +254,7 @@ private:
     static float distanceToSegmentSquared(float px, float py,
                                           const Point& a, const Point& b);
 
+    void prepareCourse();
     void prepareScenery();
     void drawWorld(PRUZEA::Graphics& graphics) const;
     void drawRoad(PRUZEA::Graphics& graphics) const;
