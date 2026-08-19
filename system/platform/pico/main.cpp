@@ -156,12 +156,6 @@ bool readBatteryVoltage(void*, float& voltage)
 
     voltage = (batteryRaw * estimatedVref / 4095.0f) * 2.0f *
         BATTERY_CONFIG.voltageCalibrationFactor + BATTERY_CONFIG.voltageCalibrationOffset;
-    printf(
-        "Battery: raw=%.1f tempRaw=%.1f vref=%.3f voltage=%.3f\n",
-        static_cast<double>(batteryRaw),
-        static_cast<double>(temperatureRaw),
-        static_cast<double>(estimatedVref),
-        static_cast<double>(voltage));
     return true;
 }
 
