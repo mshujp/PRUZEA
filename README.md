@@ -7,7 +7,7 @@ A lightweight game framework designed for AI-assisted game development.
 
 > [!TIP]
 > Looking for an Arduino IDE version?
-> [PRUZEA mini](https://github.com/mshujp/PRUZEAmini) is designed for single games and UI applications, while PRUZEA provides a complete multi-game system built with the Raspberry Pi Pico SDK and CMake.
+> [PRUZEA mini](https://github.com/mshujp/PRUZEAmini) is designed for single games and UI applications, while PRUZEA provides a complete multi-game system with Raspberry Pi Pico targets and a Windows development simulator.
 
 ------------------------------------------------------------------------
 
@@ -29,12 +29,15 @@ A lightweight game framework designed for AI-assisted game development.
 -   ToneNote and embedded SMF Format 0 / 1 MIDI playback
 -   Simultaneous background music and sound-effect mixing
 -   GPIO buttons, gamepads, analog sticks, and touchscreen input
+-   Windows development simulator using SDL3
 
-- **Supported platforms**
-  - Raspberry Pi Pico family
-    - RP2040
-    - RP2350
-  - ESP32 family (planned)
+## Supported Platforms
+
+- Raspberry Pi Pico family
+  - RP2040
+  - RP2350
+- Windows (SDL3) — development simulator
+- ESP32 family — planned
   
 
 | Hardware |  |
@@ -82,7 +85,7 @@ This allows game logic to remain clean, portable, and easy to generate.
 | [08](samples/TinyStarfield/) [09](samples/WireframeTunnel/) [10](samples/Software3D/) 3D Samples | Advanced rendering |
 | [11 SL](samples/SL/) | Bonus sample |
 | [12 Touch Paint](samples/TouchPaint/) | Touchscreen |
-| [13 Analog Stick](samples/AnalogStick/) | AnalogStick Input |
+| [13 Analog Stick](samples/AnalogStick/) | Analog Stick Input |
 | [14 Image Gallery](samples/ImageGallery/) | JPEG and PNG image rendering |
 | [15 Midi Music Box](samples/MidiMusicBox/) | Embedded SMF Format 0 / 1 MIDI playback |
 | [16 Maze Escape](samples/MazeEscape/) | Advanced gameplay and visual effects |
@@ -97,94 +100,11 @@ Each sample introduces one or more new concepts while building on previous examp
 
 ------------------------------------------------------------------------
 
-# Build Requirements
-
-## Required tools
-
--   Raspberry Pi Pico SDK
--   CMake
--   Ninja
--   Arm GNU Toolchain
-
-## Arduino IDE Version
-
-For a simpler single-application version that works with the Arduino IDE, see:
-
-- [PRUZEA mini](https://github.com/mshujp/PRUZEAmini)
-
-------------------------------------------------------------------------
-
-# Required Libraries
-  
-- [LovyanGFX](https://github.com/lovyan03/LovyanGFX)
-- [pico-extras](https://github.com/raspberrypi/pico-extras) (required for I2S audio)
-- [no-OS-FatFS-SD-SDIO-SPI-RPi-Pico](https://github.com/carlk3/no-OS-FatFS-SD-SDIO-SPI-RPi-Pico) (required for SD storage)  
-
-``` text
-PRUZEA/
-├── games/
-├── system/
-└── lib/
-    ├── LovyanGFX/
-    ├── pico-extras/
-    └── no-OS-FatFS-SD-SDIO-SPI-RPi-Pico/
-```
-
-------------------------------------------------------------------------
-
-# Configuration
-
-## Hardware Configuration
-
-PRUZEA uses hardware profiles to describe the complete hardware configuration of a board.
-
-Select the hardware profile in the `###### ENVIRONMENT START ######` section of [`CMakeLists.txt`](CMakeLists.txt).
-
-```cmake
-set(PRUZEA_PIN_CONFIG_DEFAULT "system/platform/pico/boards/RaspberryPi_Pico.h")
-#set(PRUZEA_PIN_CONFIG_DEFAULT "system/platform/pico/boards/RaspberryPi_Pico2.h")
-#set(PRUZEA_PIN_CONFIG_DEFAULT "system/platform/pico/boards/WaveShare_RP2040-ZERO.h")
-```
-
-Hardware profiles are stored in:
-
-```text
-system/platform/pico/boards/
-```
-
-Each profile defines the board-specific hardware settings, including graphics, input, audio, storage, battery, and pin assignments.
-
-To support a new board, create a new hardware profile in this directory and select it in [`CMakeLists.txt`](CMakeLists.txt).
-
-## Project Configuration
-
-Edit the `###### ENVIRONMENT START ######` section in the root [`CMakeLists.txt`](CMakeLists.txt) to configure the project's default settings.
-
-Available options include:
-
-- Target board (`RP2040`, `RP2350`)
-- Display (`ILI9341`, `SSD1306`)
-- Storage (`SD`, `NONE`)
-- Audio (`PWM`, `I2S`, `NONE`)
-- Input (`GPIO_BUTTONS`, `SNES`, `PS`)
-- Touchscreen (`XPT2046`, `NONE`)
-- Japanese font (`ON`, `OFF`)
-- PSRAM (`ON`, `OFF`)
-- Sample projects (`ON`, `OFF`)
-
-For example:
-
-```cmake
-set(PRUZEA_TARGET_DEFAULT "RP2040")
-set(PRUZEA_DISPLAY_DEFAULT "ILI9341")
-set(PRUZEA_AUDIO_DEFAULT "PWM")
-```
-
-These values define the project's default configuration and can be overridden from the command line using CMake options.
-
-------------------------------------------------------------------------
-
 # Build
+
+## Raspberry Pi Pico
+
+### Build
 
 Build the project with CMake:
 
@@ -192,9 +112,8 @@ Build the project with CMake:
 cmake -S . -B build
 cmake --build build
 ```
-------------------------------------------------------------------------
 
-# Deployment
+### Deployment
 
 After building, the generated firmware can be found at:
 
@@ -204,7 +123,80 @@ build/system/pruzea.uf2
 
 Copy the UF2 file to a board in BOOTSEL mode to install the firmware.
 
-VSCode tasks or custom scripts can also be used to automate the deployment process.
+VS Code tasks or custom scripts can also be used to automate the deployment process.
+
+## Windows Simulator
+
+PRUZEA includes a Windows simulator based on SDL3.
+
+It is intended for developing and testing PRUZEA games on a PC before running them on Raspberry Pi Pico hardware. The same game source and PRUZEA API can be used on both targets.
+
+The simulator provides:
+
+- Graphics rendering in an SDL3 window
+- Keyboard input
+- SDL-compatible game controller input
+- Analog stick input
+- Mouse input as touchscreen input
+- Audio and MIDI playback
+- Storage access
+
+The simulator reproduces PRUZEA graphics, input, audio, storage, and game-loop behavior, but it does not emulate RP2040 or RP2350 performance characteristics.
+
+### SDL3
+
+Place the complete SDL3 release source under:
+
+```text
+PRUZEA/lib/SDL/
+```
+
+### VS Code
+
+When using VS Code with CMake Tools:
+
+1. Press `Ctrl + Shift + P`.
+2. Select `CMake: Select Configure Preset`.
+3. Select `PRUZEA Windows Simulator`.
+4. Build the project using the **Build** button in VS Code.
+5. Start PRUZEA using the **Run (▶)** button.
+
+If CMake needs to be reconfigured, right-click the root `CMakeLists.txt` and use the CMake configure/reconfigure command.
+
+### Command Line
+
+The Windows simulator can also be configured and built from the command line:
+
+```sh
+cmake --preset windows-simulator
+cmake --build --preset windows-simulator-build
+```
+
+### Keyboard Controls
+
+| PRUZEA Input | Keyboard |
+|---|---|
+| D-Pad | Arrow keys |
+| A | X |
+| B | Z |
+| X | S |
+| Y | A |
+| L | Q |
+| R | W |
+| L2 | 1 |
+| R2 | 2 |
+| L3 | 3 |
+| R3 | 4 |
+| START | Enter |
+| SELECT | Backspace |
+| HOME | Esc |
+| Volume Up | `=` / Numpad `+` |
+| Volume Down | `-` / Numpad `-` |
+| Mute | M |
+
+SDL-compatible game controllers can also be used. D-pad, face buttons, shoulder buttons, triggers, stick buttons, Start/Select, and analog sticks are supported.
+
+The left mouse button is treated as touchscreen input, with the mouse position converted to PRUZEA screen coordinates.
 
 ------------------------------------------------------------------------
 
@@ -298,7 +290,7 @@ Do not provide platform-specific source files.
 
 ------------------------------------------------------------------------
 
-## Recommended AI
+# Recommended AI
 
 PRUZEA is designed to work with modern AI coding assistants.
 
@@ -416,12 +408,16 @@ PRUZEA/
 ├── samples/
 ├── scripts/
 ├── lib/
+│   ├── SDL/
+│   ├── LovyanGFX/
+│   ├── pico-extras/
+│   └── no-OS-FatFS-SD-SDIO-SPI-RPi-Pico/
 └── ...
 ```
 
 ------------------------------------------------------------------------
 
-## Supported Hardware
+# Supported Hardware
 
 The following hardware configurations have been verified with PRUZEA.
 
