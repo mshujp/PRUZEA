@@ -15,6 +15,17 @@
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release"
       }
+    },
+    {
+      "name": "windows-simulator",
+      "displayName": "PRUZEA Windows Simulator",
+      "description": "Windows simulator; requires SDL3 source in lib/SDL",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build-windows-simulator",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "PRUZEA_PLATFORM": "WINDOWS"
+      }
     }
   ],
   "buildPresets": [
@@ -30,6 +41,13 @@
       "configurePreset": "default",
       "targets": [
         "deploy_pruzea_uf2"
+      ]
+    },
+    {
+      "name": "windows-simulator-build",
+      "configurePreset": "windows-simulator",
+      "targets": [
+        "pruzea"
       ]
     }
   ]

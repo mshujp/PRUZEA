@@ -49,6 +49,7 @@ public:
     System& operator=(const System&) = delete;
 
     bool start();
+    void requestTerminate();
     void runAudioWorker();
 
 private:
@@ -98,6 +99,7 @@ private:
     bool requestFullRedraw = true;
     bool shutdownPrepared = false;
 
+    std::atomic<bool> terminateRequested{false};
     std::atomic<bool> audioWorkerStopRequested{false};
     std::atomic<bool> audioWorkerAlive{false};
     std::atomic<bool> audioWorkerReady{false};

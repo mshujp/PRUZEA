@@ -1,9 +1,13 @@
-cmake_minimum_required(VERSION 3.13)
+cmake_minimum_required(VERSION 3.16)
 
 
 
 ###### ENVIRONMENT START ######
 # Edit this block to choose the default PRUZEA hardware profile.
+
+# Platform options: PICO, WINDOWS
+# PICO remains the primary and default target. WINDOWS is an optional simulator.
+set(PRUZEA_PLATFORM_DEFAULT "PICO")
 
 # Pin profile options:
 #   system/platform/pico/boards/XXX.h
@@ -66,7 +70,16 @@ include("${CMAKE_CURRENT_LIST_DIR}/CMakeLocalConfig.cmake" OPTIONAL)
 
 
 
-set(PICO_BOARD "${PICO_BOARD_DEFAULT}" CACHE STRING "Pico SDK board name")
+set(PRUZEA_PLATFORM "${PRUZEA_PLATFORM_DEFAULT}" CACHE STRING "PICO or WINDOWS")
+set_property(CACHE PRUZEA_PLATFORM PROPERTY STRINGS PICO WINDOWS)
+string(TOUPPER "${PRUZEA_PLATFORM}" PRUZEA_PLATFORM)
+if (NOT PRUZEA_PLATFORM STREQUAL "PICO" AND NOT PRUZEA_PLATFORM STREQUAL "WINDOWS")
+    message(FATAL_ERROR "PRUZEA_PLATFORM must be PICO or WINDOWS")
+endif()
+
+if (PRUZEA_PLATFORM STREQUAL "PICO")
+    set(PICO_BOARD "${PICO_BOARD_DEFAULT}" CACHE STRING "Pico SDK board name")
+endif()
 
 set(PRUZEA_DISPLAY "${PRUZEA_DISPLAY_DEFAULT}" CACHE STRING "SSD1306, ILI9341, or ILI9341_PARALLEL")
 set_property(CACHE PRUZEA_DISPLAY PROPERTY STRINGS SSD1306 ILI9341 ILI9341_PARALLEL)
@@ -87,26 +100,30 @@ option(PRUZEA_JAPANESE_FONT "Enable Japanese font" ${PRUZEA_JAPANESE_FONT_DEFAUL
 option(PRUZEA_PSRAM "Enable PSRAM" ${PRUZEA_PSRAM_DEFAULT})
 option(PRUZEA_SAMPLES "Build sample games and tools" ${PRUZEA_SAMPLES_DEFAULT})
 
-set(PRUZEA_PIN_CONFIG "${PRUZEA_PIN_CONFIG_DEFAULT}" CACHE FILEPATH "Pin config header")
-set(PRUZEA_PICOTOOL_PATH "${PRUZEA_PICOTOOL_PATH_DEFAULT}" CACHE FILEPATH "Optional path to picotool executable used for automatic BOOTSEL reboot")
+if (PRUZEA_PLATFORM STREQUAL "PICO")
+    set(PRUZEA_PIN_CONFIG "${PRUZEA_PIN_CONFIG_DEFAULT}" CACHE FILEPATH "Pin config header")
+    set(PRUZEA_PICOTOOL_PATH "${PRUZEA_PICOTOOL_PATH_DEFAULT}" CACHE FILEPATH "Optional path to picotool executable used for automatic BOOTSEL reboot")
 
-if (IS_ABSOLUTE "${PRUZEA_PIN_CONFIG}")
-    file(RELATIVE_PATH PRUZEA_PIN_CONFIG_FROM_BINARY "${CMAKE_BINARY_DIR}" "${PRUZEA_PIN_CONFIG}")
-    if (
-        NOT PRUZEA_PIN_CONFIG_FROM_BINARY MATCHES "^\\.\\."
-        AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/${PRUZEA_PIN_CONFIG_FROM_BINARY}"
-    )
-        set(PRUZEA_PIN_CONFIG "${CMAKE_CURRENT_SOURCE_DIR}/${PRUZEA_PIN_CONFIG_FROM_BINARY}")
+    if (IS_ABSOLUTE "${PRUZEA_PIN_CONFIG}")
+        file(RELATIVE_PATH PRUZEA_PIN_CONFIG_FROM_BINARY "${CMAKE_BINARY_DIR}" "${PRUZEA_PIN_CONFIG}")
+        if (
+            NOT PRUZEA_PIN_CONFIG_FROM_BINARY MATCHES "^\\.\\."
+            AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/${PRUZEA_PIN_CONFIG_FROM_BINARY}"
+        )
+            set(PRUZEA_PIN_CONFIG "${CMAKE_CURRENT_SOURCE_DIR}/${PRUZEA_PIN_CONFIG_FROM_BINARY}")
+        endif()
+    else()
+        get_filename_component(
+            PRUZEA_PIN_CONFIG
+            "${PRUZEA_PIN_CONFIG}"
+            ABSOLUTE
+            BASE_DIR "${CMAKE_CURRENT_SOURCE_DIR}"
+        )
     endif()
+    set(PRUZEA_PIN_CONFIG "${PRUZEA_PIN_CONFIG}" CACHE FILEPATH "Pin config header" FORCE)
 else()
-    get_filename_component(
-        PRUZEA_PIN_CONFIG
-        "${PRUZEA_PIN_CONFIG}"
-        ABSOLUTE
-        BASE_DIR "${CMAKE_CURRENT_SOURCE_DIR}"
-    )
+    set(PRUZEA_PIN_CONFIG "")
 endif()
-set(PRUZEA_PIN_CONFIG "${PRUZEA_PIN_CONFIG}" CACHE FILEPATH "Pin config header" FORCE)
 
 string(TOUPPER "${PRUZEA_TARGET}" PRUZEA_TARGET)
 string(TOUPPER "${PRUZEA_DISPLAY}" PRUZEA_DISPLAY)
@@ -121,41 +138,61 @@ foreach(option_name PRUZEA_DISPLAY PRUZEA_STORAGE PRUZEA_AUDIO PRUZEA_INPUT PRUZ
     endif()
 endforeach()
 
-include($ENV{PICO_SDK_PATH}/external/pico_sdk_import.cmake)
-if (PRUZEA_AUDIO STREQUAL "I2S")
-    if (EXISTS "${CMAKE_CURRENT_LIST_DIR}/lib/pico-extras/external/pico_extras_import.cmake")
-        set(PICO_EXTRAS_PATH "${CMAKE_CURRENT_LIST_DIR}/lib/pico-extras")
-        include("${PICO_EXTRAS_PATH}/external/pico_extras_import.cmake")
-    elseif (DEFINED ENV{PICO_EXTRAS_PATH})
-        include("$ENV{PICO_EXTRAS_PATH}/external/pico_extras_import.cmake")
-    elseif (DEFINED ENV{PICO_extras_PATH})
-        include("$ENV{PICO_extras_PATH}/external/pico_extras_import.cmake")
-    else()
-        message(FATAL_ERROR "PRUZEA_AUDIO=I2S requires pico-extras. Place it in lib/pico-extras or set PICO_EXTRAS_PATH.")
+if (PRUZEA_PLATFORM STREQUAL "PICO")
+    include($ENV{PICO_SDK_PATH}/external/pico_sdk_import.cmake)
+    if (PRUZEA_AUDIO STREQUAL "I2S")
+        if (EXISTS "${CMAKE_CURRENT_LIST_DIR}/lib/pico-extras/external/pico_extras_import.cmake")
+            set(PICO_EXTRAS_PATH "${CMAKE_CURRENT_LIST_DIR}/lib/pico-extras")
+            include("${PICO_EXTRAS_PATH}/external/pico_extras_import.cmake")
+        elseif (DEFINED ENV{PICO_EXTRAS_PATH})
+            include("$ENV{PICO_EXTRAS_PATH}/external/pico_extras_import.cmake")
+        elseif (DEFINED ENV{PICO_extras_PATH})
+            include("$ENV{PICO_extras_PATH}/external/pico_extras_import.cmake")
+        else()
+            message(FATAL_ERROR "PRUZEA_AUDIO=I2S requires pico-extras. Place it in lib/pico-extras or set PICO_EXTRAS_PATH.")
+        endif()
     endif()
 endif()
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 
-project(PRUZEA C CXX ASM)
+if (PRUZEA_PLATFORM STREQUAL "PICO")
+    project(PRUZEA C CXX ASM)
+else()
+    project(PRUZEA C CXX)
+endif()
 
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_CXX_STANDARD 17)
 
-if (PRUZEA_PICOTOOL_PATH AND EXISTS "${PRUZEA_PICOTOOL_PATH}")
-    add_executable(picotool IMPORTED GLOBAL)
-    set_property(TARGET picotool PROPERTY IMPORTED_LOCATION "${PRUZEA_PICOTOOL_PATH}")
-    set(picotool_FOUND 1)
-endif()
-
-pico_sdk_init()
-
-add_subdirectory(lib/LovyanGFX)
-if (PRUZEA_STORAGE STREQUAL "SD")
-    set(PRUZEA_SD_LIBRARY_DIR "${CMAKE_CURRENT_LIST_DIR}/lib/no-OS-FatFS-SD-SDIO-SPI-RPi-Pico")
-    if (NOT EXISTS "${PRUZEA_SD_LIBRARY_DIR}/src/CMakeLists.txt")
-        message(FATAL_ERROR "PRUZEA_STORAGE=SD requires no-OS-FatFS-SD-SDIO-SPI-RPi-Pico in lib/no-OS-FatFS-SD-SDIO-SPI-RPi-Pico.")
+if (PRUZEA_PLATFORM STREQUAL "PICO")
+    if (PRUZEA_PICOTOOL_PATH AND EXISTS "${PRUZEA_PICOTOOL_PATH}")
+        add_executable(picotool IMPORTED GLOBAL)
+        set_property(TARGET picotool PROPERTY IMPORTED_LOCATION "${PRUZEA_PICOTOOL_PATH}")
+        set(picotool_FOUND 1)
     endif()
-    add_subdirectory("${PRUZEA_SD_LIBRARY_DIR}/src")
+
+    pico_sdk_init()
+    add_subdirectory(lib/LovyanGFX)
+
+    if (PRUZEA_STORAGE STREQUAL "SD")
+        set(PRUZEA_SD_LIBRARY_DIR "${CMAKE_CURRENT_LIST_DIR}/lib/no-OS-FatFS-SD-SDIO-SPI-RPi-Pico")
+        if (NOT EXISTS "${PRUZEA_SD_LIBRARY_DIR}/src/CMakeLists.txt")
+            message(FATAL_ERROR "PRUZEA_STORAGE=SD requires no-OS-FatFS-SD-SDIO-SPI-RPi-Pico in lib/no-OS-FatFS-SD-SDIO-SPI-RPi-Pico.")
+        endif()
+        add_subdirectory("${PRUZEA_SD_LIBRARY_DIR}/src")
+    endif()
+else()
+    if (NOT EXISTS "${CMAKE_CURRENT_LIST_DIR}/lib/SDL/CMakeLists.txt")
+        message(FATAL_ERROR "PRUZEA_PLATFORM=WINDOWS requires SDL3 source in lib/SDL.")
+    endif()
+
+    set(SDL_SHARED OFF CACHE BOOL "" FORCE)
+    set(SDL_STATIC ON CACHE BOOL "" FORCE)
+    set(SDL_TEST_LIBRARY OFF CACHE BOOL "" FORCE)
+    set(SDL_TESTS OFF CACHE BOOL "" FORCE)
+    set(SDL_EXAMPLES OFF CACHE BOOL "" FORCE)
+    set(SDL_INSTALL OFF CACHE BOOL "" FORCE)
+    add_subdirectory(lib/SDL EXCLUDE_FROM_ALL)
 endif()
 
 set(PRUZEA_DISPLAY_SSD1306 0)
@@ -175,6 +212,14 @@ set(PRUZEA_TARGET_RP2040 0)
 set(PRUZEA_TARGET_RP2350 0)
 set(PRUZEA_ENABLE_JAPANESE_FONT 0)
 set(PRUZEA_ENABLE_PSRAM 0)
+set(PRUZEA_PLATFORM_PICO 0)
+set(PRUZEA_PLATFORM_WINDOWS 0)
+
+if (PRUZEA_PLATFORM STREQUAL "PICO")
+    set(PRUZEA_PLATFORM_PICO 1)
+else()
+    set(PRUZEA_PLATFORM_WINDOWS 1)
+endif()
 
 if (PRUZEA_DISPLAY STREQUAL "SSD1306")
     set(PRUZEA_DISPLAY_SSD1306 1)
@@ -223,12 +268,14 @@ else()
     message(FATAL_ERROR "PRUZEA_TOUCH must be XPT2046 or NONE")
 endif()
 
-if (PICO_PLATFORM MATCHES "^rp2040")
-    set(PRUZEA_TARGET_RP2040 1)
-elseif (PICO_PLATFORM MATCHES "^rp2350")
-    set(PRUZEA_TARGET_RP2350 1)
-else()
-    message(FATAL_ERROR "PICO_BOARD must select an RP2040 or RP2350 board")
+if (PRUZEA_PLATFORM STREQUAL "PICO")
+    if (PICO_PLATFORM MATCHES "^rp2040")
+        set(PRUZEA_TARGET_RP2040 1)
+    elseif (PICO_PLATFORM MATCHES "^rp2350")
+        set(PRUZEA_TARGET_RP2350 1)
+    else()
+        message(FATAL_ERROR "PICO_BOARD must select an RP2040 or RP2350 board")
+    endif()
 endif()
 
 if (PRUZEA_JAPANESE_FONT)
@@ -247,14 +294,24 @@ configure_file(
 
 add_subdirectory(system)
 
-add_custom_target(deploy_pruzea_uf2
-    COMMAND powershell
-        -NoProfile
-        -ExecutionPolicy Bypass
-        -File "${CMAKE_SOURCE_DIR}/scripts/deploy-uf2.ps1"
-        -Uf2Path "${CMAKE_BINARY_DIR}/system/pruzea.uf2"
-        -PicotoolPath "${PRUZEA_PICOTOOL_PATH}"
-    DEPENDS pruzea
-    COMMENT "Deploying pruzea.uf2"
-    VERBATIM
-)
+if (PRUZEA_PLATFORM STREQUAL "PICO")
+    add_custom_target(deploy_pruzea_uf2
+        COMMAND powershell
+            -NoProfile
+            -ExecutionPolicy Bypass
+            -File "${CMAKE_SOURCE_DIR}/scripts/deploy-uf2.ps1"
+            -Uf2Path "${CMAKE_BINARY_DIR}/system/pruzea.uf2"
+            -PicotoolPath "${PRUZEA_PICOTOOL_PATH}"
+        DEPENDS pruzea
+        COMMENT "Deploying pruzea.uf2"
+        VERBATIM
+    )
+else()
+    # CMake Tools remembers the selected build target independently from the
+    # configure preset. Keep the Pico deploy target usable as a build-only
+    # compatibility target when switching the same workspace to Windows.
+    add_custom_target(deploy_pruzea_uf2
+        DEPENDS pruzea
+        COMMENT "Building the Windows simulator (UF2 deployment is not applicable)"
+    )
+endif()

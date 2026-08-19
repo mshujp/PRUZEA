@@ -89,8 +89,6 @@ ${PRUZEA_GENERATED_GAME_REGISTRATIONS}}
 ")
 
 add_executable(pruzea
-    platform/pico/main.cpp
-    platform/pico/Platform.cpp
     hardware/InputBase.cpp
     hardware/GraphicsBase.cpp
     hardware/AudioBase.cpp
@@ -107,7 +105,6 @@ add_executable(pruzea
     util/ScreenShot.cpp
     util/Vector2.cpp
     util/Animation.cpp
-    platform/pico/graphics/Image.cpp
     ${PRUZEA_GENERATED_GAMES_CPP}
     ${PRUZEA_GAME_SOURCES}
 )
@@ -120,95 +117,135 @@ target_include_directories(pruzea PRIVATE
     ${CMAKE_CURRENT_LIST_DIR}/ui
     ${CMAKE_CURRENT_LIST_DIR}/util
     ${CMAKE_CURRENT_LIST_DIR}/hardware
-    ${CMAKE_CURRENT_LIST_DIR}/platform/pico
-    ${CMAKE_CURRENT_LIST_DIR}/platform/pico/boards
     ${PRUZEA_GAME_INCLUDE_DIRS}
 )
 
-if (PRUZEA_DISPLAY STREQUAL "ILI9341" OR PRUZEA_DISPLAY STREQUAL "ILI9341_PARALLEL")
+if (PRUZEA_PLATFORM STREQUAL "PICO")
     target_sources(pruzea PRIVATE
-        platform/pico/graphics/parallel/BusParallelPIO.cpp
-        platform/pico/graphics/GraphicsILI9341.cpp
-        platform/pico/graphics/lgfx/LGFXContext.cpp
+        platform/pico/main.cpp
+        platform/pico/Platform.cpp
+        platform/pico/graphics/Image.cpp
+    )
+
+    target_include_directories(pruzea PRIVATE
+        ${CMAKE_CURRENT_LIST_DIR}/platform/pico
+        ${CMAKE_CURRENT_LIST_DIR}/platform/pico/boards
+    )
+
+    if (PRUZEA_DISPLAY STREQUAL "ILI9341" OR PRUZEA_DISPLAY STREQUAL "ILI9341_PARALLEL")
+        target_sources(pruzea PRIVATE
+            platform/pico/graphics/parallel/BusParallelPIO.cpp
+            platform/pico/graphics/GraphicsILI9341.cpp
+            platform/pico/graphics/lgfx/LGFXContext.cpp
+            ui/SystemUI320x240.cpp
+            ui/SystemUI128x64Mono.cpp
+        )
+        pico_generate_pio_header(
+            pruzea
+            ${CMAKE_CURRENT_LIST_DIR}/platform/pico/graphics/parallel/BusParallelPIO.pio
+        )
+    elseif (PRUZEA_DISPLAY STREQUAL "SSD1306")
+        target_sources(pruzea PRIVATE
+            platform/pico/graphics/GraphicsSSD1306.cpp
+            ui/SystemUI128x64Mono.cpp
+        )
+    endif()
+
+    if (PRUZEA_STORAGE STREQUAL "SD")
+        target_sources(pruzea PRIVATE platform/pico/storage/StorageSD.cpp)
+    elseif (PRUZEA_STORAGE STREQUAL "NONE")
+        target_sources(pruzea PRIVATE hardware/StorageStub.cpp)
+    endif()
+
+    if (PRUZEA_AUDIO STREQUAL "I2S")
+        target_sources(pruzea PRIVATE platform/pico/audio/AudioI2S.cpp)
+    elseif (PRUZEA_AUDIO STREQUAL "PWM")
+        target_sources(pruzea PRIVATE platform/pico/audio/AudioPWM.cpp)
+    elseif (PRUZEA_AUDIO STREQUAL "NONE")
+        target_sources(pruzea PRIVATE hardware/AudioStub.cpp)
+    endif()
+
+    if (PRUZEA_INPUT STREQUAL "SNES")
+        target_sources(pruzea PRIVATE
+            platform/pico/input/GpioButtons.cpp
+            platform/pico/input/InputSnes.cpp
+        )
+    elseif (PRUZEA_INPUT STREQUAL "GPIO_BUTTONS")
+        target_sources(pruzea PRIVATE
+            platform/pico/input/GpioButtons.cpp
+            platform/pico/input/InputGpioButtons.cpp
+        )
+    elseif (PRUZEA_INPUT STREQUAL "PS")
+        target_sources(pruzea PRIVATE
+            platform/pico/input/GpioButtons.cpp
+            platform/pico/input/InputPS.cpp
+        )
+    endif()
+
+    if (PRUZEA_TOUCH STREQUAL "XPT2046")
+        target_sources(pruzea PRIVATE platform/pico/touch/TouchXPT2046.cpp)
+    endif()
+
+    target_link_libraries(pruzea
+        pico_stdlib
+        pico_multicore
+        pico_rand
+        hardware_gpio
+        hardware_adc
+        hardware_spi
+        hardware_i2c
+        hardware_pwm
+        hardware_dma
+        hardware_pio
+        LovyanGFX
+    )
+
+    if (PRUZEA_AUDIO STREQUAL "I2S")
+        target_link_libraries(pruzea pico_audio_i2s)
+    endif()
+
+    if (PRUZEA_STORAGE STREQUAL "SD")
+        target_link_libraries(pruzea no-OS-FatFS-SD-SDIO-SPI-RPi-Pico)
+    endif()
+
+    pico_enable_stdio_usb(pruzea 1)
+    pico_enable_stdio_uart(pruzea 0)
+    pico_add_extra_outputs(pruzea)
+
+    add_custom_command(TARGET pruzea POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            $<TARGET_FILE_DIR:pruzea>/pruzea.uf2
+            ${CMAKE_BINARY_DIR}/pruzea.uf2
+        COMMENT "Copying pruzea.uf2 to build directory"
+    )
+elseif (PRUZEA_PLATFORM STREQUAL "WINDOWS")
+    find_package(Threads REQUIRED)
+
+    target_compile_features(pruzea PRIVATE cxx_std_20)
+
+    target_sources(pruzea PRIVATE
+        platform/windows/main.cpp
+        platform/windows/Platform.cpp
+        platform/windows/input/InputSDL.cpp
+        platform/windows/audio/AudioSDL.cpp
+        platform/windows/graphics/GraphicsSDL.cpp
+        platform/windows/graphics/Image.cpp
+        platform/windows/storage/StorageWinFS.cpp
         ui/SystemUI320x240.cpp
-        ui/SystemUI128x64Mono.cpp
     )
-    pico_generate_pio_header(
-        pruzea
-        ${CMAKE_CURRENT_LIST_DIR}/platform/pico/graphics/parallel/BusParallelPIO.pio
-    )
-elseif (PRUZEA_DISPLAY STREQUAL "SSD1306")
-    target_sources(pruzea PRIVATE
-        platform/pico/graphics/GraphicsSSD1306.cpp
-        ui/SystemUI128x64Mono.cpp
-    )
-endif()
 
-if (PRUZEA_STORAGE STREQUAL "SD")
-    target_sources(pruzea PRIVATE platform/pico/storage/StorageSD.cpp)
-elseif (PRUZEA_STORAGE STREQUAL "NONE")
-    target_sources(pruzea PRIVATE hardware/StorageStub.cpp)
-endif()
-
-if (PRUZEA_AUDIO STREQUAL "I2S")
-    target_sources(pruzea PRIVATE platform/pico/audio/AudioI2S.cpp)
-elseif (PRUZEA_AUDIO STREQUAL "PWM")
-    target_sources(pruzea PRIVATE platform/pico/audio/AudioPWM.cpp)
-elseif (PRUZEA_AUDIO STREQUAL "NONE")
-    target_sources(pruzea PRIVATE hardware/AudioStub.cpp)
-endif()
-
-if (PRUZEA_INPUT STREQUAL "SNES")
-    target_sources(pruzea PRIVATE
-        platform/pico/input/GpioButtons.cpp
-        platform/pico/input/InputSnes.cpp
+    target_include_directories(pruzea PRIVATE
+        ${CMAKE_CURRENT_LIST_DIR}/platform/windows
     )
-elseif (PRUZEA_INPUT STREQUAL "GPIO_BUTTONS")
-    target_sources(pruzea PRIVATE
-        platform/pico/input/GpioButtons.cpp
-        platform/pico/input/InputGpioButtons.cpp
-    )
-elseif (PRUZEA_INPUT STREQUAL "PS")
-    target_sources(pruzea PRIVATE
-        platform/pico/input/GpioButtons.cpp
-        platform/pico/input/InputPS.cpp
+
+    if (MSVC)
+        target_compile_options(pruzea PRIVATE /utf-8)
+    endif()
+
+    target_link_libraries(pruzea PRIVATE
+        SDL3::SDL3
+        Threads::Threads
+        windowscodecs
+        ole32
     )
 endif()
-
-if (PRUZEA_TOUCH STREQUAL "XPT2046")
-    target_sources(pruzea PRIVATE platform/pico/touch/TouchXPT2046.cpp)
-endif()
-
-target_link_libraries(pruzea
-    pico_stdlib
-    pico_multicore
-    pico_rand
-    hardware_gpio
-    hardware_adc
-    hardware_spi
-    hardware_i2c
-    hardware_pwm
-    hardware_dma
-    hardware_pio
-    LovyanGFX
-)
-
-if (PRUZEA_AUDIO STREQUAL "I2S")
-    target_link_libraries(pruzea pico_audio_i2s)
-endif()
-
-if (PRUZEA_STORAGE STREQUAL "SD")
-    target_link_libraries(pruzea no-OS-FatFS-SD-SDIO-SPI-RPi-Pico)
-endif()
-
-pico_enable_stdio_usb(pruzea 1)
-pico_enable_stdio_uart(pruzea 0)
-
-pico_add_extra_outputs(pruzea)
-
-add_custom_command(TARGET pruzea POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        $<TARGET_FILE_DIR:pruzea>/pruzea.uf2
-        ${CMAKE_BINARY_DIR}/pruzea.uf2
-    COMMENT "Copying pruzea.uf2 to build directory"
-)

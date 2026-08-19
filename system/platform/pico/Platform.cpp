@@ -5,7 +5,21 @@
 #include "pico/stdlib.h"
 #include "pico/time.h"
 
+#include <cstdarg>
+#include <cstdio>
+
 using namespace PRUZEA;
+
+void Debug::log(const char* format, ...)
+{
+    if (format == nullptr) return;
+
+    va_list arguments;
+    va_start(arguments, format);
+    std::vprintf(format, arguments);
+    va_end(arguments);
+    std::fflush(stdout);
+}
 
 uint32_t Platform::random32()
 {

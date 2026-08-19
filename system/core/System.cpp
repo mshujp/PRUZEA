@@ -45,6 +45,11 @@ bool System::start()
     return true;
 }
 
+void System::requestTerminate()
+{
+    terminateRequested.store(true);
+}
+
 bool System::initialize()
 {
     graphicsAvailable = graphics.begin();
@@ -201,6 +206,16 @@ bool System::loop()
     lastFrameMsec = frameNowMsec;
 
     input.update();
+    if (terminateRequested.exchange(false))
+    {
+        if (currentGame == nullptr || currentGame->requestTerminate() == Game::TerminateResponse::ACCEPT)
+        {
+            execState = ExecState::SHUT_DOWN;
+            beginShutdown(ShutdownReason::USER_REQUEST);
+            return false;
+        }
+    }
+
     updateSystem();
     CoreRing::update();
 

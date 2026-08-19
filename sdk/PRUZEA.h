@@ -156,6 +156,9 @@ namespace Display {
     static constexpr uint16_t ILI9341_SCREEN_W = 320;
     static constexpr uint16_t ILI9341_SCREEN_H = 240;
 }
+namespace Debug {
+    void log(const char* format, ...); // Prints a formatted debug message to the terminal/serial output.
+}
 
 // --- ======================
 // # Input
