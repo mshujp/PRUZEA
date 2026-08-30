@@ -1,4 +1,5 @@
 #include "GraphicsSSD1306.h"
+#include "PRUZEAConfig.h"
 #include <algorithm>
 
 using namespace PRUZEA;
