@@ -41,7 +41,6 @@
 
 #include <hardware/adc.h>
 #include <pico/multicore.h>
-#include <pico/stdio_usb.h>
 #include <pico/stdlib.h>
 
 using namespace PRUZEA;
