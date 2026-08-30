@@ -5,6 +5,7 @@
 #include <algorithm>
 
 #include "pico/stdlib.h"
+#include "PRUZEAConfig.h"
 
 using namespace PRUZEA;
 
