@@ -208,6 +208,10 @@ if (PRUZEA_PLATFORM STREQUAL "PICO")
         target_link_libraries(pruzea no-OS-FatFS-SD-SDIO-SPI-RPi-Pico)
     endif()
 
+    if (PRUZEA_PSRAM)
+        target_link_libraries(pruzea hardware_psram)
+    endif()
+
     pico_enable_stdio_usb(pruzea 1)
     pico_enable_stdio_uart(pruzea 0)
     pico_add_extra_outputs(pruzea)

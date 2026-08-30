@@ -1,8 +1,14 @@
 #include "PRUZEA.h"
+#include "PRUZEAConfig.h"
+#if PRUZEA_ENABLE_PSRAM
+#include "hardware/psram.h"
+#include "pico/platform/sections.h"
+#endif
 #include <LovyanGFX.hpp>
 #include <lgfx/utility/lgfx_pngle.h>
 
 #include <algorithm>
+#include <cstddef>
 #include <cmath>
 #include <cstring>
 #include <new>
@@ -10,6 +16,96 @@
 using namespace PRUZEA;
 
 namespace {
+
+#if PRUZEA_ENABLE_PSRAM
+struct alignas(max_align_t) PsramBlock
+{
+    size_t size;
+    PsramBlock* next;
+    bool free;
+};
+
+alignas(max_align_t) uint8_t psramImageArena[PICO_PSRAM_SIZE_BYTES] __uninitialized_psram("pruzea_image");
+PsramBlock* firstPsramBlock = nullptr;
+bool psramInitializationAttempted = false;
+
+constexpr size_t alignPsramSize(size_t size)
+{
+    constexpr size_t ALIGNMENT = alignof(max_align_t);
+    return (size + ALIGNMENT - 1) & ~(ALIGNMENT - 1);
+}
+
+bool initializePsramImageAllocator()
+{
+    if (psramInitializationAttempted) return firstPsramBlock != nullptr;
+    psramInitializationAttempted = true;
+
+    if (!psram_is_available() || !psram_check_address(psramImageArena) ||
+        !psram_check_address(psramImageArena + sizeof(psramImageArena) - 1)) return false;
+
+    firstPsramBlock = reinterpret_cast<PsramBlock*>(psramImageArena);
+    firstPsramBlock->size = sizeof(psramImageArena) - sizeof(PsramBlock);
+    firstPsramBlock->next = nullptr;
+    firstPsramBlock->free = true;
+    return true;
+}
+
+void mergeFreePsramImageBlocks()
+{
+    for (PsramBlock* block = firstPsramBlock; block != nullptr && block->next != nullptr;)
+    {
+        if (block->free && block->next->free)
+        {
+            block->size += sizeof(PsramBlock) + block->next->size;
+            block->next = block->next->next;
+        }
+        else
+        {
+            block = block->next;
+        }
+    }
+}
+
+void* allocatePsramImageBuffer(size_t size)
+{
+    if (size == 0 || !initializePsramImageAllocator()) return nullptr;
+    size = alignPsramSize(size);
+
+    for (PsramBlock* block = firstPsramBlock; block != nullptr; block = block->next)
+    {
+        if (!block->free || block->size < size) continue;
+
+        if (block->size >= size + sizeof(PsramBlock) + alignof(max_align_t))
+        {
+            auto* next = reinterpret_cast<PsramBlock*>(reinterpret_cast<uint8_t*>(block + 1) + size);
+            next->size = block->size - size - sizeof(PsramBlock);
+            next->next = block->next;
+            next->free = true;
+            block->size = size;
+            block->next = next;
+        }
+
+        block->free = false;
+        return block + 1;
+    }
+
+    return nullptr;
+}
+
+void freePsramImageBuffer(void* buffer)
+{
+    if (buffer == nullptr || firstPsramBlock == nullptr || !psram_check_address(buffer)) return;
+
+    auto* block = static_cast<PsramBlock*>(buffer) - 1;
+    const uintptr_t blockAddress = reinterpret_cast<uintptr_t>(block);
+    const uintptr_t arenaStart = reinterpret_cast<uintptr_t>(psramImageArena);
+    const uintptr_t arenaEnd = arenaStart + sizeof(psramImageArena);
+    if (blockAddress < arenaStart || blockAddress + sizeof(PsramBlock) > arenaEnd) return;
+
+    block->free = true;
+    mergeFreePsramImageBlocks();
+}
+#endif
 
 struct ImageLayout
 {
@@ -189,22 +285,20 @@ public:
     {
         if (data == nullptr || size == 0 || outputWidth == 0 || outputHeight == 0) return false;
 
-        if (sprite != nullptr)
-        {
-            delete sprite;
-            sprite = nullptr;
-        }
+        release();
 
         sprite = new (std::nothrow) lgfx::LGFX_Sprite(nullptr);
         if (sprite == nullptr) return false;
 
         sprite->setColorDepth(lgfx::color_depth_t::rgb565_nonswapped);
-        #if PRUZEA_ENABLE_PSRAM
-        sprite->setPsram(true);
-        #endif
-        if (sprite->createSprite(outputWidth, outputHeight) == nullptr)
+#if PRUZEA_ENABLE_PSRAM
+        const size_t pixelCount = static_cast<size_t>(outputWidth) * outputHeight;
+        imageBuffer = allocatePsramImageBuffer(pixelCount * sizeof(uint16_t));
+        if (imageBuffer != nullptr) sprite->setBuffer(imageBuffer, outputWidth, outputHeight);
+#endif
+        if (imageBuffer == nullptr && sprite->createSprite(outputWidth, outputHeight) == nullptr)
         {
-            delete sprite;
+            release();
             return false;
         }
         sprite->fillScreen(Graphics::BLACK);
@@ -214,7 +308,7 @@ public:
             : decodeJpeg(*sprite, outputWidth, outputHeight, data, size, fit);
         if (!decoded)
         {
-            delete sprite;
+            release();
             return false;
         }
 
@@ -229,15 +323,29 @@ public:
 
     void close() override
     {
-        sprite->deleteSprite();
-        delete sprite;
+        release();
         Graphics::Image::close();
     }
 
 private:
+    void release()
+    {
+        if (sprite != nullptr)
+        {
+            sprite->deleteSprite();
+            delete sprite;
+            sprite = nullptr;
+        }
+#if PRUZEA_ENABLE_PSRAM
+        freePsramImageBuffer(imageBuffer);
+#endif
+        imageBuffer = nullptr;
+    }
+
     uint16_t width = 0;
     uint16_t height = 0;
     lgfx::LGFX_Sprite* sprite = nullptr;
+    void* imageBuffer = nullptr;
 };
 
 } // namespace
@@ -278,4 +386,3 @@ void Graphics::Image::close()
 {
     delete this;
 }
-
